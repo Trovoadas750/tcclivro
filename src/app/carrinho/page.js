@@ -64,7 +64,7 @@ export default function Carrinho() {
     <>
       <h1 style={{ margin: '28px 0 20px' }}><Icone nome="carrinho" alt="Carrinho" tam={22} /> Meu carrinho</h1>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 24, alignItems: 'start', flexWrap: 'wrap' }}>
+      <div className="layout-2col">
         <div className="painel">
           {itens.map((i) => (
             <div key={i.livro.id} className="cart-item">

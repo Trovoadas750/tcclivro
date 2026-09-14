@@ -123,7 +123,7 @@ export default function Checkout() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 24, alignItems: 'start', flexWrap: 'wrap' }}>
+      <div className="layout-2col">
         <form onSubmit={finalizar} id="formCheckout">
           {/* Endereço de entrega */}
           <div className="painel margem" style={{ marginTop: 0 }}>
@@ -181,7 +181,7 @@ export default function Checkout() {
                     }
                   />
                 </div>
-                <div className="dupla" style={{ gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div className="dupla" style={{ gap: 10 }}>
                   <div className="campo">
                     <label>Validade</label>
                     <input

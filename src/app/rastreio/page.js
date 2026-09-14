@@ -82,7 +82,7 @@ function ConteudoRastreio() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 24, marginTop: 24, alignItems: 'start', flexWrap: 'wrap' }}>
+      <div className="layout-2col" style={{ marginTop: 24 }}>
         {/* Histórico do envio */}
         <div className="painel">
           <h3 style={{ marginBottom: 16 }}><Icone nome="caminhao" alt="Histórico" tam={17} /> Histórico do envio</h3>
