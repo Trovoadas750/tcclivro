@@ -15,7 +15,6 @@ export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000
 /** Nome das chaves usadas no localStorage (evita colisões). */
 export const STORAGE_KEYS = {
   TEMA: 'casa_leitor_tema',
-  USUARIO: 'casa_leitor_usuario',
   CARRINHO: 'casa_leitor_carrinho',
   FAVORITOS: 'casa_leitor_favoritos',
   PEDIDOS: 'casa_leitor_pedidos',

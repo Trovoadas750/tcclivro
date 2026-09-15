@@ -1,6 +1,7 @@
 /**
  * Cabeçalho global (equivalente ao includes/header.php do PHP).
- * É um componente CLIENT porque lê carrinho/usuário do localStorage.
+ * É um componente CLIENT porque lê o carrinho do localStorage e o
+ * usuário logado via Supabase Auth (cliente de navegador).
  * Contém: logo, busca, navegação, temas, usuário e carrinho.
  */
 'use client';
@@ -11,37 +12,45 @@ import { useEffect, useState } from 'react';
 import Icone from '@/components/Icone';
 import ThemeToggle from '@/components/ThemeToggle';
 import { APP_NAME } from '@/lib/config';
-import { getUsuario, logout, qtdCarrinho } from '@/lib/clientStore';
+import { qtdCarrinho } from '@/lib/clientStore';
+import { createClient } from '@/lib/supabase/client';
 
 export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
+  const [supabase] = useState(() => createClient());
   const [qtdCart, setQtdCart] = useState(0);
   const [usuario, setUsuario] = useState(null);
   const [menuAberto, setMenuAberto] = useState(false);
   const [busca, setBusca] = useState('');
 
   useEffect(() => {
-    setUsuario(getUsuario());
+    async function carregarUsuario() {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUsuario(user);
+    }
+
+    carregarUsuario();
     setQtdCart(qtdCarrinho());
 
     // Atualiza o badge do carrinho quando itens mudam em outra aba
     const atualizar = () => setQtdCart(qtdCarrinho());
     window.addEventListener('storage', atualizar);
     window.addEventListener('carrinho-atualizado', atualizar);
-    window.addEventListener('usuario-atualizado', () => setUsuario(getUsuario()));
+    window.addEventListener('usuario-atualizado', carregarUsuario);
     return () => {
       window.removeEventListener('storage', atualizar);
       window.removeEventListener('carrinho-atualizado', atualizar);
-      window.removeEventListener('usuario-atualizado', () => setUsuario(getUsuario()));
+      window.removeEventListener('usuario-atualizado', carregarUsuario);
     };
-  }, []);
+  }, [supabase]);
 
-  function sair() {
-    logout();
+  async function sair() {
+    await supabase.auth.signOut();
     window.dispatchEvent(new Event('usuario-atualizado'));
     setUsuario(null);
     router.push('/');
+    router.refresh();
   }
 
   function enviarBusca(e) {
@@ -84,7 +93,7 @@ export default function Header() {
           {usuario ? (
             <div className="dropdown" onClick={(e) => e.stopPropagation()}>
               <button className="btn-usuario" type="button" onClick={() => setMenuAberto(!menuAberto)}>
-                <Icone nome="usuario" alt="Usuário" tam={17} /> {usuario.nome} ▾
+                <Icone nome="usuario" alt="Usuário" tam={17} /> {usuario.email} ▾
               </button>
               {menuAberto && (
                 <div className="dropdown-menu">

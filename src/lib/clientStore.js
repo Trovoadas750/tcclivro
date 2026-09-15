@@ -2,15 +2,19 @@
  * ============================================================
  *  ARMAZENAMENTO DO CLIENTE (localStorage)
  * ============================================================
- *  No projeto PHP, carrinho, favoritos, usuário logado e pedidos
- *  ficavam em sessão PHP + tabelas do banco (carrinho, favoritos,
- *  pedidos, usuarios). Sem banco ativo, estes dados passam a
- *  viver no navegador via localStorage.
+ *  No projeto PHP, carrinho, favoritos e pedidos ficavam em sessão
+ *  PHP + tabelas do banco (carrinho, favoritos, pedidos). Sem banco
+ *  ativo, estes dados passam a viver no navegador via localStorage.
+ *
+ *  O login em si NÃO está mais aqui: é feito de verdade pelo Supabase
+ *  Auth (veja src/lib/supabase/client.js, src/lib/supabase/server.js
+ *  e src/app/auth/actions.js). Este arquivo cuida só de carrinho,
+ *  favoritos e pedidos, que continuam como dados fictícios da demo.
  *
  *  ⚠️  IMPORTANTE: isto é uma solução PROVISÓRIA para a demo.
- *      Quando o Supabase for ativado (src/lib/supabase.js), estas
- *      funções devem ser substituídas por chamadas reais ao banco
- *      (a estrutura das tabelas está em database/schema.sql).
+ *      Quando essas tabelas forem ativadas de verdade no Supabase,
+ *      estas funções devem ser substituídas por chamadas reais ao
+ *      banco (a estrutura das tabelas está em database/schema.sql).
  *
  *  TODAS as funções são client-side ("use client" nos componentes).
  */
@@ -38,23 +42,6 @@ function gravar(chave, valor) {
   } catch {
     // localStorage indisponível (modo privado etc.) — ignora.
   }
-}
-
-/* ------------------------------------------------------------------ *
- *  Usuário (simula auth/login e auth/registro do PHP)
- * ------------------------------------------------------------------ */
-
-export function getUsuario() {
-  return ler(STORAGE_KEYS.USUARIO, null);
-}
-
-export function setUsuario(usuario) {
-  gravar(STORAGE_KEYS.USUARIO, usuario);
-}
-
-export function logout() {
-  if (typeof window === 'undefined') return;
-  localStorage.removeItem(STORAGE_KEYS.USUARIO);
 }
 
 /* ------------------------------------------------------------------ *

@@ -110,21 +110,6 @@ export const AVALIACOES = [
 ];
 
 /**
- * Usuário demo (tabela `usuarios`).
- * Senha: 123456 — usada na tela de login para entrar na demo.
- */
-export const USUARIO_DEMO = {
-  id: 1,
-  nome: 'Cliente Demo',
-  email: 'demo@casadoleitor.com',
-  senha: '12345a6',
-  endereco: 'Ru das Letras, 123',
-  cidade: 'São Paulo',
-  uf: 'SP',
-  telefone: '(11) 99999-0000',
-};
-
-/**
  * Pedido de exemplo com rastreio (tabelas `pedidos`,
  * `pedido_itens` e `rastreio`) — usado para demonstrar as telas
  * de "Meus pedidos" e "Rastreio" antes de existir banco.

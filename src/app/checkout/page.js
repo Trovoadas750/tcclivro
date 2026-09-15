@@ -11,9 +11,10 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Icone from '@/components/Icone';
 import { preco } from '@/lib/format';
-import { getUsuario, getCarrinho, criarPedido, resumoCarrinho } from '@/lib/clientStore';
+import { getCarrinho, criarPedido, resumoCarrinho } from '@/lib/clientStore';
 import { FRETE_GRATIS_ACIMA, FRETE_PADRAO } from '@/lib/config';
 import { LIVROS } from '@/lib/mockData';
+import { createClient } from '@/lib/supabase/client';
 
 const FORMAS = [
   { chave: 'cartao', rotulo: 'Cartão', icone: 'cartao' },
@@ -40,20 +41,20 @@ export default function Checkout() {
   });
 
   useEffect(() => {
-    const u = getUsuario();
-    if (!u) {
-      router.replace('/auth/login?proximo=/checkout');
-      return;
+    const supabase = createClient();
+
+    async function carregar() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.replace('/auth/login?proximo=/checkout');
+        return;
+      }
+      setUsuario({ id: user.id, nome: user.email, email: user.email });
+      setResumo(resumoCarrinho(LIVROS));
     }
-    setUsuario(u);
-    setForm((f) => ({
-      ...f,
-      endereco: u.endereco || '',
-      cidade: u.cidade || '',
-      uf: u.uf || '',
-    }));
-    setResumo(resumoCarrinho(LIVROS));
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    carregar();
+  }, [router]);
 
   function setCampo(nome, valor) {
     setForm((f) => ({ ...f, [nome]: valor }));

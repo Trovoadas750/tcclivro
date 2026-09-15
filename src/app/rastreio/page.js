@@ -11,8 +11,9 @@ import { Suspense, useEffect, useState } from 'react';
 import Icone from '@/components/Icone';
 import CapaLivro from '@/components/CapaLivro';
 import { preco, formatarData } from '@/lib/format';
-import { buscarPedidoPorCodigo, getUsuario } from '@/lib/clientStore';
+import { buscarPedidoPorCodigo } from '@/lib/clientStore';
 import { PEDIDO_DEMO, ETAPAS_RASTREIO, LIVROS } from '@/lib/mockData';
+import { createClient } from '@/lib/supabase/client';
 
 function ConteudoRastreio() {
   const searchParams = useSearchParams();
@@ -20,16 +21,22 @@ function ConteudoRastreio() {
   const [pedido, setPedido] = useState(null);
 
   useEffect(() => {
-    const usuario = getUsuario();
-    if (!usuario) return;
+    const supabase = createClient();
 
-    // Pedido real (localStorage) ou o pedido demo
-    const pedidoReal = buscarPedidoPorCodigo(codigo);
-    if (pedidoReal) {
-      setPedido(pedidoReal);
-    } else if (codigo === PEDIDO_DEMO.codigo) {
-      setPedido(PEDIDO_DEMO);
+    async function carregar() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Pedido real (localStorage) ou o pedido demo
+      const pedidoReal = buscarPedidoPorCodigo(codigo);
+      if (pedidoReal) {
+        setPedido(pedidoReal);
+      } else if (codigo === PEDIDO_DEMO.codigo) {
+        setPedido(PEDIDO_DEMO);
+      }
     }
+
+    carregar();
   }, [codigo]);
 
   if (!pedido) {

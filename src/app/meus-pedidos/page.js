@@ -10,19 +10,26 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import Icone from '@/components/Icone';
 import { preco, formatarData } from '@/lib/format';
-import { getPedidos, getUsuario } from '@/lib/clientStore';
+import { getPedidos } from '@/lib/clientStore';
 import { PEDIDO_DEMO, ROTULOS_STATUS, LIVROS } from '@/lib/mockData';
+import { createClient } from '@/lib/supabase/client';
 
 export default function MeusPedidos() {
   const [pedidos, setPedidos] = useState([]);
 
   useEffect(() => {
-    const usuario = getUsuario();
-    if (!usuario) return;
-    const meus = getPedidos().filter((p) => p.usuarioId === usuario.id);
-    // Adiciona o pedido demo (dados de exemplo do banco original)
-    const demo = { ...PEDIDO_DEMO, usuarioId: usuario.id, _demo: true };
-    setPedidos([demo, ...meus]);
+    const supabase = createClient();
+
+    async function carregar() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const meus = getPedidos().filter((p) => p.usuarioId === user.id);
+      // Adiciona o pedido demo (dados de exemplo do banco original)
+      const demo = { ...PEDIDO_DEMO, usuarioId: user.id, _demo: true };
+      setPedidos([demo, ...meus]);
+    }
+
+    carregar();
   }, []);
 
   if (pedidos.length === 0) {

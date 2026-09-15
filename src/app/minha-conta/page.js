@@ -10,8 +10,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Icone from '@/components/Icone';
-import { getUsuario, setUsuario, getFavoritos, getPedidos } from '@/lib/clientStore';
+import { getFavoritos, getPedidos } from '@/lib/clientStore';
 import { PEDIDO_DEMO } from '@/lib/mockData';
+import { createClient } from '@/lib/supabase/client';
 
 export default function MinhaConta() {
   const router = useRouter();
@@ -20,33 +21,29 @@ export default function MinhaConta() {
   const [totais, setTotais] = useState({ pedidos: 0, favoritos: 0 });
 
   useEffect(() => {
-    const u = getUsuario();
-    if (!u) {
-      router.replace('/auth/login?proximo=/minha-conta');
-      return;
-    }
-    setUsuarioState(u);
-    setDados({
-      nome: u.nome || '',
-      telefone: u.telefone || '',
-      endereco: u.endereco || '',
-      cidade: u.cidade || '',
-      uf: u.uf || '',
-    });
+    const supabase = createClient();
 
-    const meusPedidos = getPedidos().filter((p) => p.usuarioId === u.id).length;
-    setTotais({ pedidos: meusPedidos + (PEDIDO_DEMO.codigo ? 1 : 0), favoritos: getFavoritos().length });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    async function carregar() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.replace('/auth/login?proximo=/minha-conta');
+        return;
+      }
+      setUsuarioState(user);
+
+      const meusPedidos = getPedidos().filter((p) => p.usuarioId === user.id).length;
+      setTotais({ pedidos: meusPedidos + (PEDIDO_DEMO.codigo ? 1 : 0), favoritos: getFavoritos().length });
+    }
+
+    carregar();
+  }, [router]);
 
   function salvar(e) {
     e.preventDefault();
     if (!usuario) return;
 
-    // Atualiza os dados do usuário no localStorage (no PHP: UPDATE usuarios)
-    const atualizado = { ...usuario, ...dados };
-    setUsuario(atualizado);
-    setUsuarioState(atualizado);
-    window.dispatchEvent(new Event('usuario-atualizado'));
+    // Dados de perfil (nome/telefone/endereço) ainda não têm uma tabela
+    // própria ligada ao login: ficam só nesta sessão do formulário.
     window.showToast?.('Dados atualizados com sucesso!');
   }
 
@@ -57,7 +54,7 @@ export default function MinhaConta() {
   return (
     <>
       <h1 style={{ margin: '28px 0 20px' }}>
-        <Icone nome="usuario" alt="Usuário" tam={22} /> Olá, {usuario.nome}!
+        <Icone nome="usuario" alt="Usuário" tam={22} /> Olá, {usuario.email}!
       </h1>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 16, marginBottom: 24 }}>

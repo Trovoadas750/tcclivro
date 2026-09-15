@@ -1,7 +1,6 @@
 /**
- * Página de login (equivalente ao auth/login.php do PHP).
- * Componente CLIENT: autentica contra o usuário demo (localStorage;
- * em produção: tabela `usuarios` via Supabase + senha com hash).
+ * Página de login. Autentica com Supabase Auth (supabase.auth.signInWithPassword,
+ * chamado via Server Action em src/app/auth/actions.js).
  */
 'use client';
 
@@ -9,8 +8,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
 import Icone from '@/components/Icone';
-import { setUsuario, getUsuario } from '@/lib/clientStore';
-import { USUARIO_DEMO } from '@/lib/mockData';
+import { entrar } from '@/app/auth/actions';
 
 function ConteudoLogin() {
   const router = useRouter();
@@ -20,33 +18,29 @@ function ConteudoLogin() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [erro, setErro] = useState(null);
+  const [enviando, setEnviando] = useState(false);
 
-  function entrar(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
+    setErro(null);
 
     if (email.trim() === '' || senha === '') {
       setErro('Preencha e-mail e senha.');
       return;
     }
 
-    // Simula a consulta: SELECT * FROM usuarios WHERE email = ?
-    // (no PHP: password_verify($senha, $usuario['senha_hash']))
-    if (email.trim().toLowerCase() === USUARIO_DEMO.email && senha === USUARIO_DEMO.senha) {
-      setUsuario({
-        id: USUARIO_DEMO.id,
-        nome: USUARIO_DEMO.nome,
-        email: USUARIO_DEMO.email,
-        endereco: USUARIO_DEMO.endereco,
-        cidade: USUARIO_DEMO.cidade,
-        uf: USUARIO_DEMO.uf,
-        telefone: USUARIO_DEMO.telefone,
-      });
-      window.dispatchEvent(new Event('usuario-atualizado'));
-      window.showToast?.(`Bem-vindo(a) de volta, ${USUARIO_DEMO.nome}!`);
-      router.push(proximo);
-    } else {
-      setErro('E-mail ou senha inválidos.');
+    setEnviando(true);
+    const resultado = await entrar({ email: email.trim(), senha });
+    setEnviando(false);
+
+    if (resultado?.erro) {
+      setErro(resultado.erro);
+      return;
     }
+
+    window.dispatchEvent(new Event('usuario-atualizado'));
+    router.push(proximo);
+    router.refresh();
   }
 
   return (
@@ -58,7 +52,7 @@ function ConteudoLogin() {
 
         {erro && <div className="toast toast-error">{erro}</div>}
 
-        <form onSubmit={entrar} className="form-grid" style={{ textAlign: 'left' }}>
+        <form onSubmit={handleSubmit} className="form-grid" style={{ textAlign: 'left' }}>
           <div className="campo">
             <label htmlFor="email">E-mail</label>
             <input type="email" id="email" required autoFocus value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -67,14 +61,13 @@ function ConteudoLogin() {
             <label htmlFor="senha">Senha</label>
             <input type="password" id="senha" required value={senha} onChange={(e) => setSenha(e.target.value)} />
           </div>
-          <button className="btn btn-primary" type="submit" style={{ justifyContent: 'center' }}>Entrar</button>
+          <button className="btn btn-primary" type="submit" style={{ justifyContent: 'center' }} disabled={enviando}>
+            {enviando ? 'Entrando...' : 'Entrar'}
+          </button>
         </form>
 
         <div className="auth-alt">
           Ainda não tem conta? <Link href="/auth/registro">Criar conta grátis</Link>
-        </div>
-        <div className="auth-alt" style={{ background: 'var(--hover-bg)', borderRadius: 10, padding: 10 }}>
-          <small>Demo: <b>demo@casadoleitor.com</b> / senha <b>123456</b></small>
         </div>
       </div>
     </div>
