@@ -1,28 +1,37 @@
 /**
- * Página de favoritos (equivalente ao favoritos.php do PHP).
- * Componente CLIENT: lista os livros favoritos salvos no
- * localStorage (em produção: tabela `favoritos` via Supabase).
+ * Página de favoritos.
+ * Componente CLIENT: lista os favoritos do usuário (tabela `favoritos`
+ * com join em `livros`), lidos do cache do localStorage quando possível
+ * (ver src/lib/usePerfil.js).
  */
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
 import Icone from '@/components/Icone';
-import LivroCard from '@/components/LivroCard';
-import { getFavoritos } from '@/lib/clientStore';
-import { LIVROS } from '@/lib/mockData';
+import CapaLivro from '@/components/CapaLivro';
+import { preco } from '@/lib/format';
+import { usePerfil } from '@/lib/usePerfil';
 
 export default function Favoritos() {
-  const [livros, setLivros] = useState([]);
+  const { carregando, usuario, favoritos, erro, removerFavorito } = usePerfil();
 
-  useEffect(() => {
-    const ids = getFavoritos();
-    setLivros(LIVROS.filter((l) => ids.includes(l.id)));
-  }, []);
+  async function remover(livro) {
+    const r = await removerFavorito(livro.id);
+    window.showToast?.(r.ok ? { titulo: 'Removido dos favoritos', descricao: livro.titulo } : r.erro);
+  }
+
+  if (carregando || !usuario) {
+    return <div style={{ marginTop: 40, textAlign: 'center' }}>Carregando...</div>;
+  }
+
+  // Ignora favoritos cujo livro foi removido do catálogo.
+  const livros = favoritos.map((f) => f.livros).filter(Boolean);
 
   return (
     <>
       <h1 style={{ margin: '28px 0 20px' }}><Icone nome="coracao" alt="Favoritos" tam={22} /> Meus favoritos</h1>
+
+      {erro && <div className="toast toast-error" style={{ marginBottom: 16 }}>{erro}</div>}
 
       {livros.length === 0 ? (
         <div className="vazio" style={{ marginTop: 20 }}>
@@ -34,7 +43,30 @@ export default function Favoritos() {
       ) : (
         <div className="grid-livros">
           {livros.map((livro) => (
-            <LivroCard key={livro.id} livro={livro} />
+            <article key={livro.id} className="card-livro">
+              <div className="capa">
+                {livro.capa_url ? (
+                  <img src={livro.capa_url} alt={livro.titulo} style={{ width: '100%' }} loading="lazy" />
+                ) : (
+                  <CapaLivro livro={livro} />
+                )}
+              </div>
+
+              <div className="card-corpo">
+                <h3 className="card-titulo">{livro.titulo}</h3>
+                <div className="card-autor">{livro.autor}</div>
+                {livro.categoria && <small style={{ color: 'var(--muted)' }}>{livro.categoria}</small>}
+                <div className="card-preco">
+                  <span className="preco">{preco(livro.preco)}</span>
+                </div>
+              </div>
+
+              <div className="card-acoes">
+                <button className="btn btn-ghost btn-sm btn-fav fav" onClick={() => remover(livro)} title="Remover dos favoritos">
+                  <Icone nome="coracao" alt="Remover dos favoritos" tam={17} /> Remover
+                </button>
+              </div>
+            </article>
           ))}
         </div>
       )}

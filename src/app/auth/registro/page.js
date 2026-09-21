@@ -10,12 +10,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import Icone from '@/components/Icone';
+import CampoSenha from '@/components/CampoSenha';
 import { cadastrar } from '@/app/auth/actions';
 
 export default function Registro() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  const [confirmacao, setConfirmacao] = useState('');
   const [erro, setErro] = useState(null);
   const [enviando, setEnviando] = useState(false);
   const [cadastroEnviado, setCadastroEnviado] = useState(false);
@@ -30,6 +32,10 @@ export default function Registro() {
     }
     if (senha.length < 6) {
       setErro('A senha deve ter ao menos 6 caracteres.');
+      return;
+    }
+    if (senha !== confirmacao) {
+      setErro('As senhas não coincidem.');
       return;
     }
 
@@ -86,10 +92,8 @@ export default function Registro() {
             <label htmlFor="email">E-mail</label>
             <input type="email" id="email" required autoFocus value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
-          <div className="campo">
-            <label htmlFor="senha">Senha</label>
-            <input type="password" id="senha" required minLength={6} value={senha} onChange={(e) => setSenha(e.target.value)} />
-          </div>
+          <CampoSenha id="senha" label="Senha" required minLength={6} autoComplete="new-password" value={senha} onChange={(e) => setSenha(e.target.value)} />
+          <CampoSenha id="confirmacao" label="Confirmar senha" required minLength={6} autoComplete="new-password" value={confirmacao} onChange={(e) => setConfirmacao(e.target.value)} />
           <button className="btn btn-primary" type="submit" style={{ justifyContent: 'center' }} disabled={enviando}>
             {enviando ? 'Criando conta...' : 'Criar conta'}
           </button>

@@ -13,6 +13,7 @@ import Icone from '@/components/Icone';
 import ThemeToggle from '@/components/ThemeToggle';
 import { APP_NAME } from '@/lib/config';
 import { qtdCarrinho } from '@/lib/clientStore';
+import { limparCachePerfil } from '@/lib/perfilStore';
 import { createClient } from '@/lib/supabase/client';
 
 export default function Header() {
@@ -38,7 +39,14 @@ export default function Header() {
     window.addEventListener('storage', atualizar);
     window.addEventListener('carrinho-atualizado', atualizar);
     window.addEventListener('usuario-atualizado', carregarUsuario);
+
+    // Logout (inclusive em outra aba ou sessão expirada): apaga o cache do perfil.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((evento) => {
+      if (evento === 'SIGNED_OUT') limparCachePerfil();
+    });
+
     return () => {
+      subscription.unsubscribe();
       window.removeEventListener('storage', atualizar);
       window.removeEventListener('carrinho-atualizado', atualizar);
       window.removeEventListener('usuario-atualizado', carregarUsuario);
@@ -47,6 +55,7 @@ export default function Header() {
 
   async function sair() {
     await supabase.auth.signOut();
+    limparCachePerfil();
     window.dispatchEvent(new Event('usuario-atualizado'));
     setUsuario(null);
     router.push('/');

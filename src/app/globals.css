@@ -494,6 +494,30 @@ a:hover { text-decoration: underline; }
 }
 .campo input:focus, .campo select:focus, .campo textarea:focus { border-color: var(--primary); }
 .campo input:disabled { opacity: .6; }
+
+/* Campo de senha com botão de olho (src/components/CampoSenha.js) */
+.campo-senha { position: relative; display: flex; }
+.campo-senha input { width: 100%; padding-right: 46px; }
+.campo-senha-olho {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  width: 34px; height: 34px; display: grid; place-items: center;
+  border: none; background: none; cursor: pointer; border-radius: 8px;
+  color: var(--muted);
+}
+.campo-senha-olho:hover { color: var(--ink); background: var(--hover-bg); }
+.campo-senha-olho:focus-visible { outline: 2px solid var(--primary); }
+
+/* Avisos de formulário (erro / informação) — alto contraste em todos os temas */
+.toast:not(.toast-card):not(.toast-container) {
+  margin: 0 0 16px; padding: 12px 14px; border-radius: 10px; text-align: left;
+  font-size: 14px; font-weight: 600; line-height: 1.4;
+  background: var(--success-soft); color: var(--ink);
+  border: 2px solid var(--success); border-left-width: 6px;
+}
+.toast.toast-error {
+  background: var(--danger-soft); border-color: var(--danger);
+}
+.toast.toast-error::before { content: "⚠ "; color: var(--danger); font-weight: 800; }
 .dupla { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 
 /* ---------- Tabelas ---------- */
@@ -539,6 +563,10 @@ a:hover { text-decoration: underline; }
 .status-despachado { background: #e0e7ff; color: #3730a3; }
 .status-em_transito { background: #dbeafe; color: #1e40af; }
 .status-entregue { background: #16a34a; color: #fff; }
+.status-pendente { background: #fef3c7; color: #92400e; }
+.status-pago { background: #dcfce7; color: #166534; }
+.status-enviado { background: #dbeafe; color: #1e40af; }
+.status-cancelado { background: #fee2e2; color: #991b1b; }
 
 .timeline { list-style: none; }
 .timeline li {

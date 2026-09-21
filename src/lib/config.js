@@ -18,6 +18,10 @@ export const STORAGE_KEYS = {
   CARRINHO: 'casa_leitor_carrinho',
   FAVORITOS: 'casa_leitor_favoritos',
   PEDIDOS: 'casa_leitor_pedidos',
+  /** Cache do perfil/favoritos/pedidos vindos do Supabase (um usuário por vez). */
+  PERFIL: 'casa_leitor_perfil_cache',
+  /** E-mail em recuperação de senha (sessionStorage, some ao fechar a aba). */
+  RECUPERACAO_EMAIL: 'casa_leitor_recuperacao_email',
 };
 
 /** Categorias "oficiais" de status de pagamento no checkout. */

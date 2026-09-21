@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
 import Icone from '@/components/Icone';
+import CampoSenha from '@/components/CampoSenha';
 import { entrar } from '@/app/auth/actions';
 
 function ConteudoLogin() {
@@ -57,13 +58,13 @@ function ConteudoLogin() {
             <label htmlFor="email">E-mail</label>
             <input type="email" id="email" required autoFocus value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
-          <div className="campo">
-            <label htmlFor="senha">Senha</label>
-            <input type="password" id="senha" required value={senha} onChange={(e) => setSenha(e.target.value)} />
-          </div>
+          <CampoSenha id="senha" label="Senha" required value={senha} onChange={(e) => setSenha(e.target.value)} />
           <button className="btn btn-primary" type="submit" style={{ justifyContent: 'center' }} disabled={enviando}>
             {enviando ? 'Entrando...' : 'Entrar'}
           </button>
+          <Link className="btn btn-ghost" href="/esqueci-senha" style={{ justifyContent: 'center' }}>
+            <Icone nome="cadeado" alt="" tam={16} /> Esqueci minha senha / Redefinir senha
+          </Link>
         </form>
 
         <div className="auth-alt">
