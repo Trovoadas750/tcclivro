@@ -9,12 +9,24 @@ import { createClient } from '@/lib/supabase/server';
 function mensagemErro(error) {
   const codigo = error?.code || '';
   const msg = error?.message || '';
+  // Registra o erro completo no terminal do servidor (npm run dev) para diagnóstico.
+  console.error('[Supabase Auth]', { status: error?.status, code: codigo, message: msg });
+  // Código técnico curto exibido no fim das mensagens genéricas.
+  const ref = ` (código: ${codigo || error?.status || 'desconhecido'})`;
 
   if (codigo === 'invalid_credentials' || msg.includes('Invalid login credentials')) {
     return 'E-mail ou senha inválidos.';
   }
   if (codigo === 'email_not_confirmed' || msg.includes('Email not confirmed')) {
-    return 'Confirme seu e-mail antes de entrar. Verifique sua caixa de entrada.';
+    // Contas antigas que ficaram pendentes no Supabase.
+    return 'Esta conta está pendente no servidor. Peça ao administrador para liberá-la no Supabase (Authentication → Users).';
+  }
+  if (
+    codigo === 'email_address_not_authorized' ||
+    /error sending .*email/i.test(msg)
+  ) {
+    // O Supabase tentou mandar algum e-mail e o envio falhou (cota do SMTP).
+    return 'O Supabase tentou enviar um e-mail e falhou.' + ref;
   }
   if (codigo === 'user_already_exists' || msg.includes('User already registered')) {
     return 'Este e-mail já está cadastrado. Tente entrar ou recuperar sua senha.';
@@ -33,7 +45,12 @@ function mensagemErro(error) {
     return 'Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente novamente.';
   }
 
-  return 'Não foi possível concluir. Tente novamente em instantes.';
+  if (/database error/i.test(msg)) {
+    // Falha no trigger que cria o perfil (handle_new_user) ou em outra regra do banco.
+    return 'O banco de dados recusou a criação da conta.' + ref;
+  }
+
+  return 'Não foi possível concluir. Tente novamente em instantes.' + ref;
 }
 
 /**
@@ -67,8 +84,9 @@ export async function entrar({ email, senha }) {
  * O front NUNCA insere em `profiles`.
  *
  * Para vendedor, o nome/descrição da loja também vão nos metadados; a
- * loja é criada no primeiro acesso ao painel (exige sessão ativa, que só
- * existe depois da confirmação do e-mail).
+ * loja é criada no primeiro acesso ao painel.
+ *
+ * A conta já entra logada logo após o cadastro.
  */
 export async function cadastrar({ nome, email, senha, tipo = 'cliente', loja = null }) {
   const supabase = await createClient();
@@ -96,11 +114,14 @@ export async function cadastrar({ nome, email, senha, tipo = 'cliente', loja = n
     return { erro: 'Este e-mail já está cadastrado. Tente entrar ou recuperar sua senha.' };
   }
 
-  // Confirmação de e-mail desativada: signUp() já retorna sessão ativa.
-  if (data.session) {
-    return { ok: true, confirmado: true, tipo: tipoConta };
+  // Normalmente o signUp() já devolve a sessão. Se não devolver, entra
+  // direto com e-mail e senha para o usuário sair do cadastro já logado.
+  if (!data.session) {
+    const { error: erroLogin } = await supabase.auth.signInWithPassword({ email, password: senha });
+    if (erroLogin) {
+      return { erro: mensagemErro(erroLogin) };
+    }
   }
 
-  // Confirmação de e-mail ativada: sem sessão até o clique no link enviado.
-  return { ok: true, confirmado: false, tipo: tipoConta };
+  return { ok: true, tipo: tipoConta };
 }

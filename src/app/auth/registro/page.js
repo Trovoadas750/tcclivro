@@ -1,8 +1,7 @@
 /**
  * Página de cadastro de CLIENTE. Cria a conta com Supabase Auth (supabase.auth.signUp,
- * chamado via Server Action em src/app/auth/actions.js). A confirmação de
- * e-mail está ativada no projeto: signUp() não retorna sessão, então em vez
- * de redirecionar mostramos aqui mesmo o aviso para checar a caixa de entrada.
+ * chamado via Server Action em src/app/auth/actions.js). Não há verificação
+ * por e-mail: após o cadastro o usuário já entra logado.
  */
 'use client';
 
@@ -21,7 +20,6 @@ export default function Registro() {
   const [confirmacao, setConfirmacao] = useState('');
   const [erro, setErro] = useState(null);
   const [enviando, setEnviando] = useState(false);
-  const [cadastroEnviado, setCadastroEnviado] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -53,34 +51,11 @@ export default function Registro() {
       return;
     }
 
-    if (resultado.confirmado) {
-      // Confirmação de e-mail desativada no projeto: já entra logado.
-      window.dispatchEvent(new Event('usuario-atualizado'));
-      window.showToast?.('Conta criada com sucesso! Boas leituras.');
-      router.push('/');
-      router.refresh();
-      return;
-    }
-
-    setCadastroEnviado(true);
-  }
-
-  if (cadastroEnviado) {
-    return (
-      <div className="auth-wrap">
-        <div className="painel auth-card">
-          <span style={{ display: 'inline-block' }}><Icone nome="info" alt="Confirme seu e-mail" tam={44} /></span>
-          <h1>Confirme seu e-mail</h1>
-          <p className="sub">
-            Enviamos um link de confirmação para <b>{email.trim()}</b>. Abra sua caixa de
-            entrada (ou spam) e clique no link para ativar sua conta.
-          </p>
-          <div className="auth-alt">
-            Já confirmou? <Link href="/auth/login">Entrar</Link>
-          </div>
-        </div>
-      </div>
-    );
+    // Sem verificação por e-mail: a conta já entra logada.
+    window.dispatchEvent(new Event('usuario-atualizado'));
+    window.showToast?.('Conta criada com sucesso! Boas leituras.');
+    router.push('/');
+    router.refresh();
   }
 
   return (

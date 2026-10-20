@@ -180,7 +180,7 @@ Restrição: `unique (user_id, livro_id)`.
 
 | Nome | Tipo | O que faz |
 |------|------|-----------|
-| `public.handle_new_user()` + trigger `on_auth_user_created` (after insert em `auth.users`) | trigger | Cria a linha em `profiles` com `nome` = `raw_user_meta_data ->> 'nome'` e `tipo` = `'vendedor'` se `raw_user_meta_data ->> 'tipo' = 'vendedor'`; **qualquer outro valor vira `'cliente'`**. O perfil existe logo no `signUp`, antes da confirmação do e-mail |
+| `public.handle_new_user()` + trigger `on_auth_user_created` (after insert em `auth.users`) | trigger | Cria a linha em `profiles` com `nome` = `raw_user_meta_data ->> 'nome'` e `tipo` = `'vendedor'` se `raw_user_meta_data ->> 'tipo' = 'vendedor'`; **qualquer outro valor vira `'cliente'`**. O perfil existe logo no `signUp` |
 | `public.is_vendedor()` | função `boolean` (security definer, stable) | `true` se o usuário logado tem `tipo = 'vendedor'`. Usada nas policies de `lojas` e `livros`. **O front não precisa chamar** |
 | `public.set_updated_at()` + trigger `profiles_set_updated_at` (before update em `profiles`) | trigger | Preenche `updated_at = now()` em toda edição de perfil |
 
@@ -219,8 +219,7 @@ const { data, error } = await supabase.auth.signUp({
     data: { nome, tipo }, // tipo: 'cliente' | 'vendedor'
   },
 });
-// Se a confirmação de e-mail estiver ativa, data.session vem null:
-// mostrar "Enviamos um link de confirmação para o seu e-mail".
+// Não há confirmação por e-mail no projeto: a conta já entra logada.
 // NÃO inserir nada em profiles depois do signUp: o trigger já cria o perfil.
 ```
 
@@ -378,7 +377,7 @@ const formatarPreco = (valor) =>
    - Listar o que encontrou antes de alterar.
 
 1. **Cadastro com tipo de conta**
-   No formulário de cadastro, adicionar a escolha entre **Cliente** e **Vendedor** (radio, padrão Cliente). Enviar `nome` e `tipo` em `options.data`. Tratar o caso de confirmação de e-mail pendente.
+   No formulário de cadastro, adicionar a escolha entre **Cliente** e **Vendedor** (radio, padrão Cliente). Enviar `nome` e `tipo` em `options.data`. Não há confirmação por e-mail: após o cadastro a conta já entra logada.
 
 2. **Redirecionamento pós-login**
    Após o login, buscar o `tipo` em `profiles`. Vendedor vai para `/painel-vendedor` e cliente vai para `/`. Se o projeto já tiver rotas equivalentes, usar as existentes.

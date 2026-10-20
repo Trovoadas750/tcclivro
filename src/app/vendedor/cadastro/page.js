@@ -37,7 +37,6 @@ export default function CadastroVendedor() {
   const [confirmacao, setConfirmacao] = useState('');
   const [erro, setErro] = useState(null);
   const [enviando, setEnviando] = useState(false);
-  const [cadastroEnviado, setCadastroEnviado] = useState(false);
 
   // Quem já está logado: vendedor vai direto ao painel; cliente recebe aviso.
   useEffect(() => {
@@ -93,37 +92,16 @@ export default function CadastroVendedor() {
       return;
     }
 
-    if (resultado.confirmado) {
-      window.dispatchEvent(new Event('usuario-atualizado'));
-      window.showToast?.('Conta de vendedor criada! Vamos montar sua loja.');
-      router.push('/painel-vendedor');
-      router.refresh();
-      return;
-    }
-
-    setCadastroEnviado(true);
+    // Sem verificação por e-mail: já entra logado e vai para o painel,
+    // onde a loja é criada automaticamente.
+    window.dispatchEvent(new Event('usuario-atualizado'));
+    window.showToast?.('Conta de vendedor criada! Vamos montar sua loja.');
+    router.push('/painel-vendedor');
+    router.refresh();
   }
 
   if (contaAtual.carregando) {
     return <div style={{ marginTop: 40, textAlign: 'center' }}>Carregando...</div>;
-  }
-
-  if (cadastroEnviado) {
-    return (
-      <div className="auth-wrap">
-        <div className="painel auth-card">
-          <span style={{ display: 'inline-block' }}><Icone nome="info" alt="Confirme seu e-mail" tam={44} /></span>
-          <h1>Confirme seu e-mail</h1>
-          <p className="sub">
-            Enviamos um link de confirmação para <b>{email.trim()}</b>. Depois de confirmar,
-            entre com sua conta: sua loja <b>{nomeLoja.trim()}</b> será criada no primeiro acesso ao painel.
-          </p>
-          <div className="auth-alt">
-            Já confirmou? <Link href="/auth/login?proximo=/painel-vendedor">Entrar no painel</Link>
-          </div>
-        </div>
-      </div>
-    );
   }
 
   return (
