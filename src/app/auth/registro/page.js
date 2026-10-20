@@ -1,5 +1,5 @@
 /**
- * Página de cadastro. Cria a conta com Supabase Auth (supabase.auth.signUp,
+ * Página de cadastro de CLIENTE. Cria a conta com Supabase Auth (supabase.auth.signUp,
  * chamado via Server Action em src/app/auth/actions.js). A confirmação de
  * e-mail está ativada no projeto: signUp() não retorna sessão, então em vez
  * de redirecionar mostramos aqui mesmo o aviso para checar a caixa de entrada.
@@ -15,6 +15,7 @@ import { cadastrar } from '@/app/auth/actions';
 
 export default function Registro() {
   const router = useRouter();
+  const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [confirmacao, setConfirmacao] = useState('');
@@ -26,6 +27,10 @@ export default function Registro() {
     e.preventDefault();
     setErro(null);
 
+    if (nome.trim().length < 2) {
+      setErro('Informe seu nome.');
+      return;
+    }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       setErro('E-mail inválido.');
       return;
@@ -40,7 +45,7 @@ export default function Registro() {
     }
 
     setEnviando(true);
-    const resultado = await cadastrar({ email: email.trim(), senha });
+    const resultado = await cadastrar({ nome: nome.trim(), email: email.trim(), senha, tipo: 'cliente' });
     setEnviando(false);
 
     if (resultado?.erro) {
@@ -89,8 +94,12 @@ export default function Registro() {
 
         <form onSubmit={handleSubmit} className="form-grid" style={{ textAlign: 'left' }}>
           <div className="campo">
+            <label htmlFor="nome">Nome</label>
+            <input type="text" id="nome" required autoFocus autoComplete="name" value={nome} onChange={(e) => setNome(e.target.value)} />
+          </div>
+          <div className="campo">
             <label htmlFor="email">E-mail</label>
-            <input type="email" id="email" required autoFocus value={email} onChange={(e) => setEmail(e.target.value)} />
+            <input type="email" id="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
           <CampoSenha id="senha" label="Senha" required minLength={6} autoComplete="new-password" value={senha} onChange={(e) => setSenha(e.target.value)} />
           <CampoSenha id="confirmacao" label="Confirmar senha" required minLength={6} autoComplete="new-password" value={confirmacao} onChange={(e) => setConfirmacao(e.target.value)} />
@@ -101,6 +110,11 @@ export default function Registro() {
 
         <div className="auth-alt">
           Já tem conta? <Link href="/auth/login">Entrar</Link>
+        </div>
+
+        <div className="cta-vendedor-mini">
+          <span><Icone nome="livros" alt="" tam={18} /> Quer vender seus livros?</span>
+          <Link className="btn btn-accent btn-sm" href="/vendedor/cadastro">Tornar-se vendedor</Link>
         </div>
       </div>
     </div>

@@ -36,21 +36,55 @@ function mensagemErro(error) {
   return 'Não foi possível concluir. Tente novamente em instantes.';
 }
 
-/** Login com e-mail e senha (item 5: supabase.auth.signInWithPassword). */
+/**
+ * Login com e-mail e senha (supabase.auth.signInWithPassword).
+ * Devolve também o `tipo` da conta (lido de `profiles`) para a tela
+ * decidir o destino: vendedor → /painel-vendedor, cliente → /.
+ */
 export async function entrar({ email, senha }) {
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password: senha });
 
   if (error) {
     return { erro: mensagemErro(error) };
   }
-  return { ok: true };
+
+  let tipo = 'cliente';
+  const { data: perfil } = await supabase
+    .from('profiles')
+    .select('tipo')
+    .eq('id', data.user.id)
+    .maybeSingle();
+  if (perfil?.tipo === 'vendedor') tipo = 'vendedor';
+
+  return { ok: true, tipo };
 }
 
-/** Cadastro com e-mail e senha (item 4: supabase.auth.signUp). */
-export async function cadastrar({ email, senha }) {
+/**
+ * Cadastro com e-mail e senha (supabase.auth.signUp).
+ * `tipo` vai em options.data: o trigger `handle_new_user` cria o perfil
+ * com esse valor (qualquer coisa diferente de 'vendedor' vira 'cliente').
+ * O front NUNCA insere em `profiles`.
+ *
+ * Para vendedor, o nome/descrição da loja também vão nos metadados; a
+ * loja é criada no primeiro acesso ao painel (exige sessão ativa, que só
+ * existe depois da confirmação do e-mail).
+ */
+export async function cadastrar({ nome, email, senha, tipo = 'cliente', loja = null }) {
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.signUp({ email, password: senha });
+  const tipoConta = tipo === 'vendedor' ? 'vendedor' : 'cliente';
+
+  const metadados = { nome: String(nome || '').trim(), tipo: tipoConta };
+  if (tipoConta === 'vendedor' && loja?.nome_loja) {
+    metadados.nome_loja = String(loja.nome_loja).trim();
+    if (loja.descricao) metadados.descricao_loja = String(loja.descricao).trim();
+  }
+
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password: senha,
+    options: { data: metadados },
+  });
 
   if (error) {
     return { erro: mensagemErro(error) };
@@ -64,9 +98,9 @@ export async function cadastrar({ email, senha }) {
 
   // Confirmação de e-mail desativada: signUp() já retorna sessão ativa.
   if (data.session) {
-    return { ok: true, confirmado: true };
+    return { ok: true, confirmado: true, tipo: tipoConta };
   }
 
   // Confirmação de e-mail ativada: sem sessão até o clique no link enviado.
-  return { ok: true, confirmado: false };
+  return { ok: true, confirmado: false, tipo: tipoConta };
 }

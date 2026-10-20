@@ -8,6 +8,7 @@
 import Link from 'next/link';
 import Icone from '@/components/Icone';
 import LivroCard from '@/components/LivroCard';
+import VitrineVendedores from '@/components/VitrineVendedores';
 import { buscarRecomendados, buscarMaisVendidos, buscarCategorias } from '@/lib/repositories/livroRepository';
 
 export const metadata = { title: 'Início' };
@@ -58,6 +59,9 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* Livros cadastrados pelos vendedores (Supabase). Some se não houver. */}
+      <VitrineVendedores />
+
       <section className="secao">
         <div className="banner-ia">
           <div style={{ flex: 1, minWidth: 260 }}>
@@ -80,6 +84,21 @@ export default async function Home() {
           {maisVendidos.map((livro) => (
             <LivroCard key={livro.id} livro={livro} />
           ))}
+        </div>
+      </section>
+
+      <section className="secao">
+        <div className="banner-vendedor">
+          <div style={{ flex: 1, minWidth: 260 }}>
+            <h2>Tem livros para vender?</h2>
+            <p>
+              Abra sua loja na Casa do Leitor, cadastre seus livros com fotos e alcance
+              leitores de todo o Brasil. O cadastro é gratuito.
+            </p>
+          </div>
+          <Link className="btn btn-accent" href="/vendedor/cadastro">
+            <Icone nome="livros" alt="" tam={18} /> Tornar-se vendedor
+          </Link>
         </div>
       </section>
     </>
