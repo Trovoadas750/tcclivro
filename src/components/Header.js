@@ -102,7 +102,7 @@ export default function Header() {
           {usuario ? (
             <div className="dropdown" onClick={(e) => e.stopPropagation()}>
               <button className="btn-usuario" type="button" onClick={() => setMenuAberto(!menuAberto)}>
-                <Icone nome="usuario" alt="Usuário" tam={17} /> {usuario.email} ▾
+                <Icone nome="usuario" alt="Usuário" tam={17} /> <span className="usuario-email" title={usuario.email}>{usuario.email}</span> ▾
               </button>
               {menuAberto && (
                 <div className="dropdown-menu">

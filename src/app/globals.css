@@ -264,6 +264,12 @@ a:hover { text-decoration: underline; }
   display: inline-flex; align-items: center; gap: 7px;
 }
 .btn-usuario:hover { background: rgba(255,255,255,.22); }
+.btn-usuario .usuario-email {
+  max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* O seletor de tema é o primeiro item das ações: abre para a direita
+   para não sair da tela quando o cabeçalho quebra linha. */
+.dropdown-tema .dropdown-menu { right: auto; left: 0; }
 .btn-tema {
   display: inline-flex; align-items: center; gap: 8px;
   background: rgba(255,255,255,.14); color: #fff; border: 1px solid rgba(255,255,255,.3);
