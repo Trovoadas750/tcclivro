@@ -85,7 +85,11 @@ export function usePerfil() {
     carregar();
   }, [carregar]);
 
-  /** Atualiza nome/avatar no banco e no cache. Retorna { ok } ou { erro }. */
+  /**
+   * Atualiza nome/avatar no banco e no cache. Retorna { ok } ou { erro }.
+   * Só UPDATE em nome/avatar_url: o perfil é criado pelo trigger no signUp
+   * e o front não pode inserir em `profiles` nem enviar tipo/updated_at.
+   */
   const salvarPerfil = useCallback(
     async ({ nome, avatar_url }) => {
       const atual = dadosRef.current;
@@ -93,13 +97,11 @@ export function usePerfil() {
 
       const { data, error } = await supabase
         .from('profiles')
-        .upsert(
-          { id: atual.usuario.id, nome, avatar_url: avatar_url || null, updated_at: new Date().toISOString() },
-          { onConflict: 'id' }
-        )
+        .update({ nome, avatar_url: avatar_url || null })
+        .eq('id', atual.usuario.id)
         .select()
-        .single();
-      if (error) return { erro: 'Não foi possível salvar. Tente novamente.' };
+        .maybeSingle();
+      if (error || !data) return { erro: 'Não foi possível salvar. Tente novamente.' };
 
       const dados = { perfil: data, favoritos: atual.favoritos, pedidos: atual.pedidos };
       gravarCachePerfil(atual.usuario.id, dados);
