@@ -8,7 +8,7 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
-const ROTAS_PROTEGIDAS = ['/minha-conta', '/checkout', '/meus-pedidos'];
+const ROTAS_PROTEGIDAS = ['/minha-conta', '/checkout', '/meus-pedidos', '/painel-vendedor'];
 
 export async function proxy(request) {
   let response = NextResponse.next({ request });

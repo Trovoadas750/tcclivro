@@ -30,6 +30,11 @@ export default function Footer() {
           <Link href="/favoritos">Favoritos</Link>
         </div>
         <div>
+          <h4>Para vendedores</h4>
+          <Link href="/vendedor/cadastro">Tornar-se vendedor</Link>
+          <Link href="/painel-vendedor">Painel do vendedor</Link>
+        </div>
+        <div>
           <h4>Pagamento &amp; Entrega</h4>
           <p><Icone nome="cartao" alt="Pagamento" tam={16} /> Pagamento fictício (demonstração)</p>
           <p><Icone nome="caminhao" alt="Entrega" tam={16} /> Rastreio de entrega simulado</p>

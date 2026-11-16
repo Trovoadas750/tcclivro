@@ -14,7 +14,10 @@ import { entrar } from '@/app/auth/actions';
 function ConteudoLogin() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const proximo = searchParams.get('proximo') || '/';
+  // Destino pedido explicitamente (ex.: veio de uma rota protegida).
+  // Só aceita caminhos internos (evita redirecionar para outro site).
+  const proximoBruto = searchParams.get('proximo') || '';
+  const proximo = proximoBruto.startsWith('/') && !proximoBruto.startsWith('//') ? proximoBruto : null;
 
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -40,7 +43,9 @@ function ConteudoLogin() {
     }
 
     window.dispatchEvent(new Event('usuario-atualizado'));
-    router.push(proximo);
+    // Sem destino explícito: vendedor vai para o painel, cliente para o início.
+    const destino = proximo || (resultado.tipo === 'vendedor' ? '/painel-vendedor' : '/');
+    router.push(destino);
     router.refresh();
   }
 
@@ -69,6 +74,8 @@ function ConteudoLogin() {
 
         <div className="auth-alt">
           Ainda não tem conta? <Link href="/auth/registro">Criar conta grátis</Link>
+          <br />
+          Quer vender livros? <Link href="/vendedor/cadastro">Tornar-se vendedor</Link>
         </div>
       </div>
     </div>

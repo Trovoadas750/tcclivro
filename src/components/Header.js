@@ -22,6 +22,7 @@ export default function Header() {
   const [supabase] = useState(() => createClient());
   const [qtdCart, setQtdCart] = useState(0);
   const [usuario, setUsuario] = useState(null);
+  const [tipo, setTipo] = useState(null); // 'cliente' | 'vendedor' | null
   const [menuAberto, setMenuAberto] = useState(false);
   const [busca, setBusca] = useState('');
 
@@ -29,6 +30,13 @@ export default function Header() {
     async function carregarUsuario() {
       const { data: { user } } = await supabase.auth.getUser();
       setUsuario(user);
+      if (!user) {
+        setTipo(null);
+        return;
+      }
+      // Tipo da conta só para ajustar o menu (a segurança é a RLS).
+      const { data: perfil } = await supabase.from('profiles').select('tipo').eq('id', user.id).maybeSingle();
+      setTipo(perfil?.tipo === 'vendedor' ? 'vendedor' : 'cliente');
     }
 
     carregarUsuario();
@@ -58,6 +66,7 @@ export default function Header() {
     limparCachePerfil();
     window.dispatchEvent(new Event('usuario-atualizado'));
     setUsuario(null);
+    setTipo(null);
     router.push('/');
     router.refresh();
   }
@@ -94,6 +103,15 @@ export default function Header() {
           {link('/', 'Início', pathname === '/')}
           {link('/busca', 'Livros', pathname === '/busca')}
           <Link href="/ia" className="nav-ia"><Icone nome="faiscas" alt="IA" tam={16} /> Recomendar com IA</Link>
+          {tipo === 'vendedor' ? (
+            <Link href="/painel-vendedor" className={`nav-vender ${pathname.startsWith('/painel-vendedor') ? 'ativo' : ''}`}>
+              <Icone nome="livros" alt="" tam={16} /> Painel do vendedor
+            </Link>
+          ) : (
+            <Link href="/vendedor/cadastro" className={`nav-vender ${pathname.startsWith('/vendedor') ? 'ativo' : ''}`}>
+              <Icone nome="livros" alt="" tam={16} /> Tornar-se vendedor
+            </Link>
+          )}
         </nav>
 
         <div className="acoes">
@@ -106,6 +124,9 @@ export default function Header() {
               </button>
               {menuAberto && (
                 <div className="dropdown-menu">
+                  {tipo === 'vendedor' && (
+                    <Link href="/painel-vendedor" onClick={() => setMenuAberto(false)}><Icone nome="livros" alt="" tam={15} /> Painel do vendedor</Link>
+                  )}
                   <Link href="/minha-conta" onClick={() => setMenuAberto(false)}>Minha conta</Link>
                   <Link href="/favoritos" onClick={() => setMenuAberto(false)}><Icone nome="coracao" alt="Favoritos" tam={15} /> Favoritos</Link>
                   <Link href="/meus-pedidos" onClick={() => setMenuAberto(false)}><Icone nome="pacote" alt="Pedidos" tam={15} /> Meus pedidos</Link>
