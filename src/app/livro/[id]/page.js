@@ -1,43 +1,29 @@
 /**
- * Página pública de um livro cadastrado por vendedor (/livro/[id]).
- * Componente SERVER: lê `livros` + `lojas` no Supabase (o id é uuid).
+ * Página pública de um livro (/livro/[id]) — vale para o catálogo inicial
+ * e para os livros dos vendedores (todos estão na tabela `livros`).
+ * Componente SERVER. O id é uuid.
  * Livro inexistente ou inativo (para quem não é o dono) → "não encontrado".
- *
- * O catálogo de demonstração continua em /produto/[id] (mockData).
- * Carrinho/checkout ainda não aceitam livros de vendedores (fora do escopo).
  */
 import Link from 'next/link';
 import Icone from '@/components/Icone';
 import GaleriaFotos from './GaleriaFotos';
+import CaixaCompra from './CaixaCompra';
 import { preco } from '@/lib/format';
 import { createClient } from '@/lib/supabase/server';
-import { ehUuid, fotosDoLivro } from '@/lib/vendedor';
-
-async function buscarLivro(id) {
-  if (!ehUuid(id)) return null;
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('livros')
-    .select('*, lojas(nome_loja, descricao)')
-    .eq('id', id)
-    .maybeSingle();
-  if (error) {
-    console.error('Erro ao buscar livro do vendedor:', error);
-    return null;
-  }
-  return data;
-}
+import { buscarLivro } from '@/lib/repositories/livroRepository';
 
 export async function generateMetadata({ params }) {
   const { id } = await params;
-  const livro = await buscarLivro(id);
+  const supabase = await createClient();
+  const livro = await buscarLivro(supabase, id);
   return { title: livro ? livro.titulo : 'Livro não encontrado' };
 }
 
-export default async function LivroVendedor({ params }) {
+export default async function PaginaLivro({ params }) {
   // Next.js 16: params é Promise — precisa de await
   const { id } = await params;
-  const livro = await buscarLivro(id);
+  const supabase = await createClient();
+  const livro = await buscarLivro(supabase, id);
 
   if (!livro) {
     return (
@@ -45,7 +31,7 @@ export default async function LivroVendedor({ params }) {
         <span className="icone"><Icone nome="buscar" alt="Não encontrado" tam={54} /></span>
         <h2>Livro não encontrado</h2>
         <p>Este livro não existe ou não está mais disponível.</p>
-        <Link className="btn btn-primary" href="/">Voltar ao início</Link>
+        <Link className="btn btn-primary" href="/busca">Ver o catálogo</Link>
       </div>
     );
   }
@@ -55,12 +41,18 @@ export default async function LivroVendedor({ params }) {
   return (
     <>
       <nav className="breadcrumb" style={{ margin: '18px 0' }}>
-        <Link href="/">Início</Link> › <span>{livro.lojas?.nome_loja || 'Vendedores'}</span> › <span>{livro.titulo}</span>
+        <Link href="/">Início</Link> ›{' '}
+        {livro.categoria ? (
+          <Link href={`/busca?categoria=${encodeURIComponent(livro.categoria)}`}>{livro.categoria}</Link>
+        ) : (
+          <Link href="/busca">Catálogo</Link>
+        )}{' '}
+        › <span>{livro.titulo}</span>
       </nav>
 
       <section className="painel produto" style={{ display: 'flex', gap: 34, flexWrap: 'wrap', alignItems: 'flex-start' }}>
         <div style={{ flex: '0 1 340px', maxWidth: 340, width: '100%', margin: '0 auto' }}>
-          <GaleriaFotos fotos={fotosDoLivro(livro)} titulo={livro.titulo} />
+          <GaleriaFotos livro={livro} />
         </div>
 
         <div style={{ flex: 1, minWidth: 260 }}>
@@ -83,6 +75,7 @@ export default async function LivroVendedor({ params }) {
           <div className="ficha" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 10, background: 'var(--hover-bg)', border: '1px solid var(--line)', borderRadius: 12, padding: 16, margin: '16px 0 20px' }}>
             <div><small style={{ color: 'var(--muted)' }}>Ano</small><br /><b>{livro.ano_lancamento || '—'}</b></div>
             <div><small style={{ color: 'var(--muted)' }}>Categoria</small><br /><b>{livro.categoria || '—'}</b></div>
+            {livro.isbn && <div><small style={{ color: 'var(--muted)' }}>ISBN</small><br /><b>{livro.isbn}</b></div>}
             <div>
               <small style={{ color: 'var(--muted)' }}>Estoque</small><br />
               <b style={{ color: disponivel ? 'var(--success)' : 'var(--danger)' }}>
@@ -91,9 +84,12 @@ export default async function LivroVendedor({ params }) {
             </div>
           </div>
 
-          <h3 style={{ marginBottom: 8 }}>Descrição</h3>
+          {/* Quantidade, "Adicionar ao carrinho", "Comprar agora" e favoritar */}
+          {livro.ativo && <CaixaCompra livro={livro} />}
+
+          <h3 style={{ marginBottom: 8 }}>Sinopse</h3>
           <p style={{ color: 'var(--muted)', fontSize: 15, whiteSpace: 'pre-line' }}>
-            {livro.sinopse || 'O vendedor não adicionou uma descrição.'}
+            {livro.sinopse || 'Este livro ainda não tem sinopse.'}
           </p>
 
           {livro.lojas?.descricao && (

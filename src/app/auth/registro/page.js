@@ -1,19 +1,24 @@
 /**
- * Página de cadastro de CLIENTE. Cria a conta com Supabase Auth (supabase.auth.signUp,
- * chamado via Server Action em src/app/auth/actions.js). Não há verificação
+ * Página de cadastro. Cria a conta com Supabase Auth (supabase.auth.signUp,
+ * chamado via Server Action em src/app/auth/actions.js). Cadastro único: toda
+ * conta nasce cliente (para vender, use /vendedor/cadastro). Não há verificação
  * por e-mail: após o cadastro o usuário já entra logado.
  */
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useState } from 'react';
 import Icone from '@/components/Icone';
 import CampoSenha from '@/components/CampoSenha';
 import { cadastrar } from '@/app/auth/actions';
+import { comProximo, destinoSeguro } from '@/lib/redirecionamento';
 
-export default function Registro() {
+function ConteudoRegistro() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // Destino de volta depois do cadastro (ex.: /vendedor/cadastro).
+  const proximo = destinoSeguro(searchParams.get('proximo'));
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -43,7 +48,7 @@ export default function Registro() {
     }
 
     setEnviando(true);
-    const resultado = await cadastrar({ nome: nome.trim(), email: email.trim(), senha, tipo: 'cliente' });
+    const resultado = await cadastrar({ nome: nome.trim(), email: email.trim(), senha });
     setEnviando(false);
 
     if (resultado?.erro) {
@@ -54,7 +59,7 @@ export default function Registro() {
     // Sem verificação por e-mail: a conta já entra logada.
     window.dispatchEvent(new Event('usuario-atualizado'));
     window.showToast?.('Conta criada com sucesso! Boas leituras.');
-    router.push('/');
+    router.push(proximo || '/');
     router.refresh();
   }
 
@@ -84,7 +89,7 @@ export default function Registro() {
         </form>
 
         <div className="auth-alt">
-          Já tem conta? <Link href="/auth/login">Entrar</Link>
+          Já tem conta? <Link href={comProximo('/auth/login', proximo)}>Entrar</Link>
         </div>
 
         <div className="cta-vendedor-mini">
@@ -93,5 +98,14 @@ export default function Registro() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function Registro() {
+  // useSearchParams exige um limite de Suspense na renderização estática.
+  return (
+    <Suspense fallback={null}>
+      <ConteudoRegistro />
+    </Suspense>
   );
 }

@@ -1,343 +1,228 @@
 /**
  * ============================================================
- *  REPOSITÓRIO DE LIVROS — camada de acesso a dados
+ *  REPOSITÓRIO DE LIVROS — consultas ao catálogo (Supabase)
  * ============================================================
- *  Equivalente às consultas SQL espalhadas pelo projeto PHP
- *  (index.php, busca.php, produto.php), concentradas aqui.
+ *  Todas as funções recebem o cliente Supabase já criado, para
+ *  servir tanto no servidor (src/lib/supabase/server.js, em Server
+ *  Components) quanto no navegador (src/lib/supabase/client.js,
+ *  em Client Components como o carrinho).
  *
- *  ⚠️  ATENÇÃO: as funções deste arquivo são as responsáveis por
- *      PUXAR OS DADOS DOS LIVROS DO BANCO. Porém, como a conexão
- *      com o Supabase está DESATIVADA (DB_ATIVO = false em
- *      src/lib/supabase.js), nenhuma consulta é realmente
- *      executada: cada função contém o SQL equivalente em
- *      comentário e devolve os dados de demonstração de
- *      src/lib/mockData.js.
- *
- *  ------------------------------------------------------------
- *  COMO FUNCIONA O DESLIGAMENTO:
- *  ------------------------------------------------------------
- *  Cada função tem o seguinte formato:
- *
- *    export async function exemplo() {
- *      const supabase = getSupabase();        // null em modo demo
- *
- *      if (supabase) {
- *        // ── BLOCO REAL (só roda com banco ativado) ──
- *        // const { data, error } = await supabase
- *        //   .from('livros')...
- *        // ...
- *      }
- *
- *      // ── FALLBACK DEMO (roda enquanto não há banco) ──
- *      return mockData...
- *    }
- *
- *  Para ativar: basta seguir o passo a passo de src/lib/supabase.js.
- * ============================================================
+ *  Regras (BDcontexto.md):
+ *   - A vitrine é pública: só livros com `ativo = true`.
+ *   - Nunca usar select('*') em `livros`: traria a coluna `busca`
+ *     (tsvector, grande e inútil no front). As colunas são listadas.
+ *   - `livros.id` é uuid.
+ *   - Em caso de erro, as funções registram no console e devolvem
+ *     vazio, para a página continuar de pé.
  */
 
-import { DB_ATIVO, getSupabase } from '@/lib/supabase';
-import {
-  LIVROS,
-  CATEGORIAS,
-  TAGS,
-  LIVRO_TAGS,
-  AVALIACOES,
-} from '@/lib/mockData';
+import { LOJA_CATALOGO_ID } from '@/lib/config';
+import { ehUuid } from '@/lib/vendedor';
 
-/* ------------------------------------------------------------------ *
- *  Helpers internos (não são consultas — apenas transformações)
- * ------------------------------------------------------------------ */
+/** Colunas usadas em cards (vitrine, busca, carrinho, favoritos). */
+export const COLUNAS_CARD =
+  'id, titulo, autor, categoria, preco, estoque, foto_1_url, foto_2_url, vendedor_id, lojas(nome_loja)';
 
-/** Junta categoria no livro (equivalente ao LEFT JOIN do PHP). */
-function comCategoria(livro) {
-  const cat = CATEGORIAS.find((c) => c.id === livro.categoriaId);
-  return { ...livro, categoria: cat || null };
+/** Colunas da página de detalhe do livro. */
+export const COLUNAS_DETALHE =
+  'id, titulo, autor, categoria, sinopse, isbn, ano_lancamento, preco, estoque, ativo, vendedor_id, foto_1_url, foto_2_url, created_at, lojas(nome_loja, descricao)';
+
+/** Livros por página no catálogo (/busca). */
+export const POR_PAGINA = 24;
+
+/** Ordenações aceitas no catálogo (valor da URL → rótulo). */
+export const ORDENACOES = {
+  recentes: 'Mais recentes',
+  preco_asc: 'Menor preço',
+  preco_desc: 'Maior preço',
+  titulo: 'Título (A–Z)',
+};
+
+function registrarErro(contexto, error) {
+  console.error(`[livroRepository] ${contexto}:`, error?.message || error);
 }
 
-/** Monta o mapa livroId -> { tag, peso } usado pelo motor de IA. */
-export function mapaTags() {
-  const mapa = {};
-  for (const [livroId, tagIndex, peso] of LIVRO_TAGS) {
-    const tag = TAGS[tagIndex - 1]; // índice 1-based no seed
-    if (!mapa[livroId]) mapa[livroId] = [];
-    mapa[livroId].push({ tag, peso });
+function aplicarOrdenacao(consulta, ordenar) {
+  switch (ordenar) {
+    case 'preco_asc':
+      return consulta.order('preco', { ascending: true }).order('id');
+    case 'preco_desc':
+      return consulta.order('preco', { ascending: false }).order('id');
+    case 'titulo':
+      return consulta.order('titulo', { ascending: true }).order('id');
+    default:
+      return consulta.order('created_at', { ascending: false }).order('id');
   }
-  return mapa;
-}
-
-/* ------------------------------------------------------------------ *
- *  Consultas de livros
- * ------------------------------------------------------------------ */
-
-/**
- * Livros recomendados pela "IA" na home (destaques por avaliação).
- *
- * SQL original (PHP index.php):
- *   SELECT l.*, cat.nome AS categoria_nome, cat.emoji AS categoria_emoji
- *     FROM livros l
- *     LEFT JOIN categorias cat ON cat.id = l.categoria_id
- *    ORDER BY l.avaliacao DESC, l.vendas DESC
- *    LIMIT 8
- */
-export async function buscarRecomendados(limite = 8) {
-  const supabase = getSupabase();
-
-  if (supabase) {
-    // ── BLOCO REAL (executado apenas com DB_ATIVO = true) ──
-    // const { data, error } = await supabase
-    //   .from('livros')
-    //   .select('*, categorias(nome, emoji)')
-    //   .order('avaliacao', { ascending: false })
-    //   .order('vendas', { ascending: false })
-    //   .limit(limite);
-    // if (error) throw new Error(`Falha ao buscar recomendados: ${error.message}`);
-    // return data;
-    void DB_ATIVO; // referência mantida de propósito (documentação)
-  }
-
-  return [...LIVROS]
-    .sort((a, b) => b.avaliacao - a.avaliacao || b.vendas - a.vendas)
-    .slice(0, limite)
-    .map(comCategoria);
 }
 
 /**
- * Mais vendidos (seção da home e ordenação "relevancia").
- *
- * SQL original (PHP index.php):
- *   SELECT l.*, cat.nome AS categoria_nome, cat.emoji AS categoria_emoji
- *     FROM livros l
- *     LEFT JOIN categorias cat ON cat.id = l.categoria_id
- *    ORDER BY l.vendas DESC
- *    LIMIT 8
+ * Destaques da página inicial: livros ativos mais recentes.
+ *   select ... from livros where ativo order by created_at desc limit N
  */
-export async function buscarMaisVendidos(limite = 8) {
-  const supabase = getSupabase();
-
-  if (supabase) {
-    // const { data, error } = await supabase
-    //   .from('livros')
-    //   .select('*, categorias(nome, emoji)')
-    //   .order('vendas', { ascending: false })
-    //   .limit(limite);
-    // if (error) throw new Error(`Falha ao buscar mais vendidos: ${error.message}`);
-    // return data;
-    void DB_ATIVO;
+export async function buscarDestaques(supabase, limite = 8) {
+  const { data, error } = await aplicarOrdenacao(
+    supabase.from('livros').select(COLUNAS_CARD).eq('ativo', true),
+    'recentes'
+  ).limit(limite);
+  if (error) {
+    registrarErro('destaques', error);
+    return [];
   }
-
-  return [...LIVROS]
-    .sort((a, b) => b.vendas - a.vendas)
-    .slice(0, limite)
-    .map(comCategoria);
+  return data || [];
 }
 
 /**
- * Categorias com contagem de livros (chips da home e filtro lateral).
- *
- * SQL original (PHP index.php):
- *   SELECT c.*, COUNT(l.id) AS total
- *     FROM categorias c
- *     LEFT JOIN livros l ON l.categoria_id = c.id
- *    GROUP BY c.id ORDER BY c.nome
+ * Categorias com pelo menos um livro ativo e com estoque, da maior para a menor.
+ *   rpc categorias_disponiveis() → [{ categoria, livros }]
  */
-export async function buscarCategorias() {
-  const supabase = getSupabase();
-
-  if (supabase) {
-    // const { data, error } = await supabase
-    //   .from('categorias')
-    //   .select('*, livros(id)')
-    //   .order('nome');
-    // if (error) throw new Error(`Falha ao buscar categorias: ${error.message}`);
-    // return data.map((c) => ({ ...c, total: c.livros.length }));
-    void DB_ATIVO;
+export async function buscarCategorias(supabase) {
+  const { data, error } = await supabase.rpc('categorias_disponiveis');
+  if (error) {
+    registrarErro('categorias', error);
+    return [];
   }
+  return (data || []).filter((c) => c.categoria);
+}
 
-  return CATEGORIAS.map((c) => ({
-    ...c,
-    total: LIVROS.filter((l) => l.categoriaId === c.id).length,
-  }));
+/** Livros ativos de uma categoria (faixas da página inicial). */
+export async function buscarPorCategoria(supabase, categoria, limite = 8) {
+  const { data, error } = await aplicarOrdenacao(
+    supabase.from('livros').select(COLUNAS_CARD).eq('ativo', true).eq('categoria', categoria),
+    'recentes'
+  ).limit(limite);
+  if (error) {
+    registrarErro(`categoria "${categoria}"`, error);
+    return [];
+  }
+  return data || [];
 }
 
 /**
- * Busca de livros com filtros (texto + categoria) e ordenação.
- *
- * SQL original (PHP busca.php):
- *   SELECT l.*, cat.nome AS categoria_nome, cat.emoji AS categoria_emoji
- *     FROM livros l
- *     LEFT JOIN categorias cat ON cat.id = l.categoria_id
- *    WHERE (l.titulo LIKE ? OR l.autor LIKE ? OR l.descricao LIKE ?)
- *      AND l.categoria_id = ?
- *    ORDER BY {relevancia|preco_asc|preco_desc|avaliacao|novidades}
- *    LIMIT 24
+ * "Direto dos vendedores": livros ativos de lojas diferentes da loja do
+ * catálogo inicial (NEXT_PUBLIC_LOJA_CATALOGO_ID). Sem a variável, mostra
+ * livros de todas as lojas.
  */
-export async function buscarLivros({ q = '', categoriaId = 0, ordenar = 'relevancia' } = {}) {
-  const supabase = getSupabase();
-
-  if (supabase) {
-    // let query = supabase
-    //   .from('livros')
-    //   .select('*, categorias(nome, emoji)');
-    //
-    // if (q) {
-    //   // ilike = LIKE do SQL; `%termo%` busca em qualquer parte.
-    //   query = query.or(`titulo.ilike.%${q}%,autor.ilike.%${q}%,descricao.ilike.%${q}%`);
-    // }
-    // if (categoriaId) {
-    //   query = query.eq('categoria_id', categoriaId);
-    // }
-    //
-    // const ordenacoes = {
-    //   relevancia: ['vendas', { ascending: false }],
-    //   preco_asc: ['preco', { ascending: true }],
-    //   preco_desc: ['preco', { ascending: false }],
-    //   avaliacao: ['avaliacao', { ascending: false }],
-    //   novidades: ['ano_publicacao', { ascending: false }],
-    // };
-    // const [coluna, opcoes] = ordenacoes[ordenar] || ordenacoes.relevancia;
-    // const { data, error } = await query.order(coluna, opcoes).limit(24);
-    // if (error) throw new Error(`Falha na busca de livros: ${error.message}`);
-    // return data;
-    void DB_ATIVO;
+export async function buscarDosVendedores(supabase, limite = 8) {
+  let consulta = supabase.from('livros').select(COLUNAS_CARD).eq('ativo', true);
+  if (LOJA_CATALOGO_ID) consulta = consulta.neq('vendedor_id', LOJA_CATALOGO_ID);
+  const { data, error } = await aplicarOrdenacao(consulta, 'recentes').limit(limite);
+  if (error) {
+    registrarErro('vendedores', error);
+    return [];
   }
+  return data || [];
+}
 
-  const termo = q.trim().toLowerCase();
-  const ordenacoes = {
-    relevancia: (a, b) => b.vendas - a.vendas,
-    preco_asc: (a, b) => a.preco - b.preco,
-    preco_desc: (a, b) => b.preco - a.preco,
-    avaliacao: (a, b) => b.avaliacao - a.avaliacao || b.numAvaliacoes - a.numAvaliacoes,
-    novidades: (a, b) => b.anoPublicacao - a.anoPublicacao,
+/**
+ * Catálogo com busca, filtro por categoria e paginação.
+ * @param {{ termo?: string, categoria?: string, ordenar?: string, pagina?: number }} filtros
+ *        pagina começa em 1.
+ * @returns {{ livros: object[], total: number, erro: boolean }}
+ */
+export async function buscarCatalogo(supabase, { termo = '', categoria = '', ordenar = 'recentes', pagina = 1 } = {}) {
+  const inicio = (Math.max(1, pagina) - 1) * POR_PAGINA;
+
+  const filtrar = (consulta) => {
+    let c = consulta.eq('ativo', true);
+    if (categoria) c = c.eq('categoria', categoria);
+    if (termo) c = c.textSearch('busca', termo, { type: 'websearch', config: 'simple' });
+    return c;
   };
 
-  return LIVROS
-    .filter((l) => {
-      const bateTermo =
-        !termo ||
-        l.titulo.toLowerCase().includes(termo) ||
-        l.autor.toLowerCase().includes(termo) ||
-        l.descricao.toLowerCase().includes(termo);
-      const bateCategoria = !categoriaId || l.categoriaId === Number(categoriaId);
-      return bateTermo && bateCategoria;
-    })
-    .sort(ordenacoes[ordenar] || ordenacoes.relevancia)
-    .slice(0, 24)
-    .map(comCategoria);
+  const consulta = filtrar(supabase.from('livros').select(COLUNAS_CARD, { count: 'exact' }));
+  const { data, count, error } = await aplicarOrdenacao(consulta, ordenar).range(inicio, inicio + POR_PAGINA - 1);
+
+  // Página além do fim (PGRST103 "Requested range not satisfiable"):
+  // devolve só o total, para a página redirecionar para a última.
+  if (error?.code === 'PGRST103') {
+    const { count: total, error: erroTotal } = await filtrar(
+      supabase.from('livros').select('id', { count: 'exact', head: true })
+    );
+    if (!erroTotal) return { livros: [], total: total || 0, erro: false };
+  }
+  if (error) {
+    registrarErro('catálogo', error);
+    return { livros: [], total: 0, erro: true };
+  }
+  return { livros: data || [], total: count || 0, erro: false };
 }
 
 /**
- * Busca UM livro pelo id (página do produto).
- * Retorna `null` quando não encontrado.
- *
- * SQL original (PHP produto.php):
- *   SELECT l.*, cat.nome AS categoria_nome, cat.emoji AS categoria_emoji
- *     FROM livros l
- *     LEFT JOIN categorias cat ON cat.id = l.categoria_id
- *    WHERE l.id = ?
+ * Um livro pelo id (página de detalhe). Livro inexistente, id inválido ou
+ * inativo para quem não é o dono (a RLS esconde) → null.
  */
-export async function buscarLivroPorId(id) {
-  const supabase = getSupabase();
-
-  if (supabase) {
-    // const { data, error } = await supabase
-    //   .from('livros')
-    //   .select('*, categorias(nome, emoji)')
-    //   .eq('id', id)
-    //   .maybeSingle(); // null quando não existe
-    // if (error) throw new Error(`Falha ao buscar livro ${id}: ${error.message}`);
-    // return data;
-    void DB_ATIVO;
+export async function buscarLivro(supabase, id) {
+  if (!ehUuid(id)) return null;
+  const { data, error } = await supabase.from('livros').select(COLUNAS_DETALHE).eq('id', id).maybeSingle();
+  if (error) {
+    registrarErro(`livro ${id}`, error);
+    return null;
   }
-
-  const livro = LIVROS.find((l) => l.id === Number(id));
-  return livro ? comCategoria(livro) : null;
+  return data;
 }
 
 /**
- * Livros relacionados ao livro atual: mesma categoria ou tags em comum.
- *
- * SQL original (PHP produto.php):
- *   SELECT l.*, cat.nome AS categoria_nome, cat.emoji AS categoria_emoji
- *     FROM livros l
- *     LEFT JOIN categorias cat ON cat.id = l.categoria_id
- *     JOIN livro_tags lt ON lt.livro_id = l.id
- *     JOIN tags t ON t.id = lt.tag_id
- *    WHERE l.id != ? AND t.nome IN (...)
- *    GROUP BY l.id ORDER BY l.avaliacao DESC LIMIT 4
- *   + complemento por categoria (quando houver menos de 4).
+ * Dados atuais de vários livros (carrinho). Livros desativados ou
+ * excluídos simplesmente não voltam na consulta.
+ * @returns {object[] | null} null quando a consulta falha.
  */
-export async function buscarRelacionados(id, limite = 4) {
-  const supabase = getSupabase();
-
-  if (supabase) {
-    // const { data: tagsDoLivro } = await supabase
-    //   .from('livro_tags')
-    //   .select('tags(nome)')
-    //   .eq('livro_id', id);
-    // const nomes = tagsDoLivro.map((r) => r.tags.nome);
-    //
-    // let query = supabase
-    //   .from('livros')
-    //   .select('*, categorias(nome, emoji)')
-    //   .neq('id', id)
-    //   .order('avaliacao', { ascending: false })
-    //   .limit(limite);
-    // if (nomes.length) {
-    //   query = query.in('livro_tags.tag', nomes);
-    // }
-    // const { data, error } = await query;
-    // if (error) throw new Error(`Falha ao buscar relacionados: ${error.message}`);
-    // return data;
-    void DB_ATIVO;
+export async function buscarLivrosPorIds(supabase, ids) {
+  const validos = [...new Set(ids)].filter(ehUuid);
+  if (validos.length === 0) return [];
+  const { data, error } = await supabase.from('livros').select(COLUNAS_CARD).eq('ativo', true).in('id', validos);
+  if (error) {
+    registrarErro('livros por id', error);
+    return null;
   }
+  return data || [];
+}
 
-  const alvo = LIVROS.find((l) => l.id === Number(id));
-  if (!alvo) return [];
+/* ------------------------------------------------------------------ *
+ *  IA de recomendação (usado só no servidor, em /api/recomendar)
+ * ------------------------------------------------------------------ */
 
-  const tagsDoAlvo = (mapaTags()[alvo.id] || []).map((t) => t.tag);
-  const porTags = LIVROS
-    .filter((l) => l.id !== alvo.id)
-    .filter((l) => (mapaTags()[l.id] || []).some((t) => tagsDoAlvo.includes(t.tag)))
-    .sort((a, b) => b.avaliacao - a.avaliacao);
+/** Tamanho máximo da sinopse enviada à IA (igual ao sinopse_resumo do banco). */
+const TAMANHO_RESUMO = 400;
 
-  const porCategoria = LIVROS
-    .filter((l) => l.id !== alvo.id && l.categoriaId === alvo.categoriaId)
-    .sort((a, b) => b.vendas - a.vendas);
-
-  const unidos = [];
-  for (const l of [...porTags, ...porCategoria]) {
-    if (unidos.length >= limite) break;
-    if (!unidos.some((u) => u.id === l.id)) unidos.push(l);
+/**
+ * Candidatos para a IA: busca de texto em `livros.busca` (termos unidos por OU)
+ * + bônus para as categorias pedidas. Só livros ativos e com estoque.
+ *   rpc buscar_livros_para_ia(p_termos, p_categorias, p_limite)
+ *   → [{ id, titulo, autor, categoria, ano_lancamento, preco, sinopse_resumo, relevancia }]
+ */
+export async function buscarCandidatosIA(supabase, { termos = [], categorias = [], limite = 40 }) {
+  if (termos.length === 0 && categorias.length === 0) return [];
+  const { data, error } = await supabase.rpc('buscar_livros_para_ia', {
+    p_termos: termos,
+    p_categorias: categorias,
+    p_limite: limite,
+  });
+  if (error) {
+    registrarErro('candidatos da IA', error);
+    return [];
   }
-  return unidos.map(comCategoria);
+  return data || [];
 }
 
 /**
- * Avaliações de um livro (com nome do usuário).
- *
- * SQL original (PHP produto.php):
- *   SELECT av.nota, av.comentario, av.criado_em, u.nome
- *     FROM avaliacoes av JOIN usuarios u ON u.id = av.usuario_id
- *    WHERE av.livro_id = ? ORDER BY av.criado_em DESC LIMIT 6
+ * Livros ativos e com estoque mais recentes, no mesmo formato dos candidatos
+ * da IA (completa a lista quando a busca devolve poucos livros).
  */
-export async function buscarAvaliacoes(livroId, limite = 6) {
-  const supabase = getSupabase();
-
-  if (supabase) {
-    // const { data, error } = await supabase
-    //   .from('avaliacoes')
-    //   .select('nota, comentario, criado_em, usuarios(nome)')
-    //   .eq('livro_id', livroId)
-    //   .order('criado_em', { ascending: false })
-    //   .limit(limite);
-    // if (error) throw new Error(`Falha ao buscar avaliações: ${error.message}`);
-    // return data.map((a) => ({ ...a, nome: a.usuarios.nome }));
-    void DB_ATIVO;
+export async function buscarRecentesParaIA(supabase, limite = 40) {
+  const { data, error } = await supabase
+    .from('livros')
+    .select('id, titulo, autor, categoria, ano_lancamento, preco, sinopse')
+    .eq('ativo', true)
+    .gt('estoque', 0)
+    .order('created_at', { ascending: false })
+    .order('id')
+    .limit(limite);
+  if (error) {
+    registrarErro('recentes para a IA', error);
+    return [];
   }
-
-  return AVALIACOES
-    .filter((a) => a.livroId === Number(livroId))
-    .sort((a, b) => new Date(b.criadoEm) - new Date(a.criadoEm))
-    .slice(0, limite);
+  return (data || []).map(({ sinopse, ...livro }) => ({
+    ...livro,
+    sinopse_resumo: sinopse ? String(sinopse).slice(0, TAMANHO_RESUMO) : null,
+  }));
 }

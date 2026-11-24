@@ -1,25 +1,42 @@
 /**
- * Página inicial (equivalente ao index.php do PHP).
- * Componente SERVER: chama os repositórios, que em modo demo
- * devolvem os dados de src/lib/mockData.js.
- * Quando o Supabase for ativado, nada muda aqui — a troca de
- * fonte de dados acontece dentro do repositório.
+ * Página inicial.
+ * Componente SERVER: lê o catálogo real (tabela `livros`) pelo
+ * repositório, com o cliente Supabase do servidor.
+ *
+ *  - Destaques: livros mais recentes.
+ *  - Uma faixa para cada uma das 5 maiores categorias (categorias_disponiveis()).
+ *  - "Direto dos vendedores": lojas diferentes da loja do catálogo inicial.
  */
 import Link from 'next/link';
 import Icone from '@/components/Icone';
 import LivroCard from '@/components/LivroCard';
-import VitrineVendedores from '@/components/VitrineVendedores';
-import { buscarRecomendados, buscarMaisVendidos, buscarCategorias } from '@/lib/repositories/livroRepository';
+import VitrineVendedores, { FaixaLivros } from '@/components/VitrineVendedores';
+import CtaVendedor from '@/components/CtaVendedor';
+import { createClient } from '@/lib/supabase/server';
+import {
+  buscarCategorias,
+  buscarDestaques,
+  buscarDosVendedores,
+  buscarPorCategoria,
+} from '@/lib/repositories/livroRepository';
 
 export const metadata = { title: 'Início' };
 
+const QTD_FAIXAS = 5;
+
 export default async function Home() {
-  // "Consulta ao banco" — sem banco ativo, devolve mock
-  const [recomendados, maisVendidos, categorias] = await Promise.all([
-    buscarRecomendados(8),
-    buscarMaisVendidos(8),
-    buscarCategorias(),
+  const supabase = await createClient();
+
+  const [destaques, categorias, dosVendedores] = await Promise.all([
+    buscarDestaques(supabase, 8),
+    buscarCategorias(supabase),
+    buscarDosVendedores(supabase, 8),
   ]);
+
+  const principais = categorias.slice(0, QTD_FAIXAS);
+  const faixas = await Promise.all(
+    principais.map(async (c) => ({ categoria: c.categoria, livros: await buscarPorCategoria(supabase, c.categoria, 10) }))
+  );
 
   return (
     <>
@@ -37,30 +54,40 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="secao">
-        <div className="chips">
-          {categorias.map((cat) => (
-            <Link key={cat.id} className="chip" href={`/busca?categoria=${cat.id}`}>
-              <Icone nome={cat.icone} alt={cat.nome} tam={15} /> {cat.nome}
-            </Link>
-          ))}
-        </div>
-      </section>
+      {categorias.length > 0 && (
+        <section className="secao">
+          <div className="chips">
+            {categorias.map((c) => (
+              <Link key={c.categoria} className="chip" href={`/busca?categoria=${encodeURIComponent(c.categoria)}`}>
+                {c.categoria} <small style={{ opacity: 0.7 }}>({c.livros})</small>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="secao">
         <div className="secao-titulo">
-          <h2><Icone nome="robo" alt="IA" tam={20} /> Recomendados por nossa IA</h2>
-          <Link className="link" href="/ia">Personalizar indicações →</Link>
+          <h2><Icone nome="novo" alt="" tam={20} /> Destaques</h2>
+          <Link className="link" href="/busca">Ver catálogo →</Link>
         </div>
-        <div className="grid-livros">
-          {recomendados.map((livro) => (
-            <LivroCard key={livro.id} livro={livro} />
-          ))}
-        </div>
+        {destaques.length > 0 ? (
+          <div className="grid-livros">
+            {destaques.map((livro) => (
+              <LivroCard key={livro.id} livro={livro} />
+            ))}
+          </div>
+        ) : (
+          <div className="painel vazio">
+            <h3>Não foi possível carregar o catálogo agora</h3>
+            <p>Tente recarregar a página em instantes.</p>
+          </div>
+        )}
       </section>
 
-      {/* Livros cadastrados pelos vendedores (Supabase). Some se não houver. */}
-      <VitrineVendedores />
+      {faixas.slice(0, 2).map((f) => (
+        <FaixaLivros key={f.categoria} titulo={f.categoria} href={`/busca?categoria=${encodeURIComponent(f.categoria)}`} livros={f.livros} />
+      ))}
 
       <section className="secao">
         <div className="banner-ia">
@@ -75,17 +102,12 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="secao">
-        <div className="secao-titulo">
-          <h2><Icone nome="fogo" alt="Mais vendidos" tam={19} /> Mais vendidos</h2>
-          <Link className="link" href="/busca?ordenar=vendas">Ver todos →</Link>
-        </div>
-        <div className="grid-livros">
-          {maisVendidos.map((livro) => (
-            <LivroCard key={livro.id} livro={livro} />
-          ))}
-        </div>
-      </section>
+      {faixas.slice(2).map((f) => (
+        <FaixaLivros key={f.categoria} titulo={f.categoria} href={`/busca?categoria=${encodeURIComponent(f.categoria)}`} livros={f.livros} />
+      ))}
+
+      {/* Livros de outras lojas (some quando não houver) */}
+      <VitrineVendedores livros={dosVendedores} />
 
       <section className="secao">
         <div className="banner-vendedor">
@@ -96,9 +118,7 @@ export default async function Home() {
               leitores de todo o Brasil. O cadastro é gratuito.
             </p>
           </div>
-          <Link className="btn btn-accent" href="/vendedor/cadastro">
-            <Icone nome="livros" alt="" tam={18} /> Tornar-se vendedor
-          </Link>
+          <CtaVendedor className="btn btn-accent" icone />
         </div>
       </section>
     </>

@@ -4,7 +4,8 @@
  */
 import Link from 'next/link';
 import Icone from '@/components/Icone';
-import { APP_NAME } from '@/lib/config';
+import CtaVendedor from '@/components/CtaVendedor';
+import { APP_NAME, CREDITOS_CATALOGO } from '@/lib/config';
 
 export default function Footer() {
   const ano = new Date().getFullYear();
@@ -31,17 +32,16 @@ export default function Footer() {
         </div>
         <div>
           <h4>Para vendedores</h4>
-          <Link href="/vendedor/cadastro">Tornar-se vendedor</Link>
-          <Link href="/painel-vendedor">Painel do vendedor</Link>
-        </div>
-        <div>
-          <h4>Pagamento &amp; Entrega</h4>
-          <p><Icone nome="cartao" alt="Pagamento" tam={16} /> Pagamento fictício (demonstração)</p>
-          <p><Icone nome="caminhao" alt="Entrega" tam={16} /> Rastreio de entrega simulado</p>
+          {/* "Tornar-se vendedor" (deslogado/cliente) ou "Meu painel" (vendedor) */}
+          <CtaVendedor />
         </div>
       </div>
       <div className="container rodape-base">
-        <span>© {ano} {APP_NAME} — todos os dados são fictícios.</span>
+        <span>© {ano} {APP_NAME} — preços e estoque do catálogo inicial são de demonstração.</span>
+        <span className="rodape-creditos">
+          {CREDITOS_CATALOGO.texto.replace(/\.$/, '')} —{' '}
+          <a href={CREDITOS_CATALOGO.url} target="_blank" rel="noopener noreferrer">ver no GitHub</a>.
+        </span>
       </div>
     </footer>
   );

@@ -2,11 +2,11 @@
  * Hook das telas do vendedor (/painel-vendedor/...).
  *
  *  - Deslogado → /auth/login (com ?proximo=).
- *  - Cliente   → / (com aviso).
+ *  - Cliente   → /vendedor/cadastro ("Tornar-se vendedor").
  *  - Vendedor  → carrega perfil e loja.
  *
- * Se o vendedor ainda não tem loja mas informou o nome dela no cadastro
- * (metadados nome_loja/descricao_loja), a loja é criada automaticamente.
+ * A loja nasce junto com a migração (rpc tornar_vendedor). Vendedor sem
+ * loja só existe em contas antigas: o painel mostra "Criar minha loja".
  *
  * Proteção de rota aqui é só experiência de uso: a segurança real é a
  * RLS do banco (BDcontexto.md, regra 14).
@@ -61,26 +61,12 @@ export function useVendedor() {
       if (error) throw error;
 
       if (perfil?.tipo !== 'vendedor') {
-        window.showToast?.('A área do vendedor é exclusiva para contas de vendedor.', 'warning');
-        router.replace('/');
+        window.showToast?.('Abra sua loja para acessar a área do vendedor.', 'warning');
+        router.replace('/vendedor/cadastro');
         return;
       }
 
-      let loja = await buscarLoja(user.id);
-
-      // Primeiro acesso: cria a loja com os dados informados no cadastro.
-      const meta = user.user_metadata || {};
-      if (!loja && meta.nome_loja) {
-        const { error: erroLoja } = await supabase
-          .from('lojas')
-          .insert({ nome_loja: String(meta.nome_loja).trim(), descricao: meta.descricao_loja?.trim() || null });
-        // 23505 = já existe (ex.: duas abas abertas); qualquer outro erro
-        // apenas deixa o formulário "Criar minha loja" visível.
-        if (!erroLoja || erroLoja.code === '23505') {
-          loja = await buscarLoja(user.id);
-          if (loja && !erroLoja) window.showToast?.(`Sua loja "${loja.nome_loja}" foi criada!`);
-        }
-      }
+      const loja = await buscarLoja(user.id);
 
       setEstado({ carregando: false, usuario: user, perfil, loja, erro: null });
     } catch (e) {

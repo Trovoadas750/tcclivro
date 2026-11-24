@@ -10,14 +10,14 @@ import { Suspense, useState } from 'react';
 import Icone from '@/components/Icone';
 import CampoSenha from '@/components/CampoSenha';
 import { entrar } from '@/app/auth/actions';
+import { comProximo, destinoSeguro } from '@/lib/redirecionamento';
 
 function ConteudoLogin() {
   const router = useRouter();
   const searchParams = useSearchParams();
   // Destino pedido explicitamente (ex.: veio de uma rota protegida).
   // Só aceita caminhos internos (evita redirecionar para outro site).
-  const proximoBruto = searchParams.get('proximo') || '';
-  const proximo = proximoBruto.startsWith('/') && !proximoBruto.startsWith('//') ? proximoBruto : null;
+  const proximo = destinoSeguro(searchParams.get('proximo'));
 
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -73,7 +73,7 @@ function ConteudoLogin() {
         </form>
 
         <div className="auth-alt">
-          Ainda não tem conta? <Link href="/auth/registro">Criar conta grátis</Link>
+          Ainda não tem conta? <Link href={comProximo('/auth/registro', proximo)}>Criar conta grátis</Link>
           <br />
           Quer vender livros? <Link href="/vendedor/cadastro">Tornar-se vendedor</Link>
         </div>

@@ -1,9 +1,13 @@
 /**
- * Card de livro (equivalente ao includes/livro_card.php do PHP).
- * Recebe o objeto livro e opções de exibição.
- * Botões "Comprar" e "Favoritar" funcionam via localStorage
- * (o armazenamento real no banco fica para quando o Supabase
- * for ativado — ver src/lib/clientStore.js).
+ * Card de livro da vitrine (página inicial, catálogo, favoritos...).
+ * Recebe um livro com as colunas de COLUNAS_CARD (livroRepository).
+ *
+ *  - Capa com fallback (foto 1 → foto 2 → capa genérica).
+ *  - "Comprar": adiciona ao carrinho do navegador (funciona deslogado).
+ *    Sem estoque → "Esgotado", desabilitado. Livro do próprio vendedor
+ *    logado → "Este livro é seu", sem botão de compra.
+ *  - Coração: tabela `favoritos` (deslogado vai para o login e volta).
+ *  - `motivo` (opcional): frase curta mostrada abaixo do preço (IA).
  */
 'use client';
 
@@ -11,87 +15,81 @@ import Link from 'next/link';
 import { useState } from 'react';
 import Icone from '@/components/Icone';
 import CapaLivro from '@/components/CapaLivro';
-import { estrelas, preco } from '@/lib/format';
-import { getFavoritos, toggleFavorito, adicionarAoCarrinho } from '@/lib/clientStore';
+import { preco } from '@/lib/format';
+import { adicionarAoCarrinho } from '@/lib/clientStore';
+import { useFavoritos } from '@/lib/favoritos';
 
-export default function LivroCard({ livro, destaqueFixo = false }) {
-  const [ehFav, setEhFav] = useState(() =>
-    typeof window !== 'undefined' && getFavoritos().includes(livro.id)
-  );
-  const [carregando, setCarregando] = useState(false);
+export default function LivroCard({ livro, motivo }) {
+  const { ehFavorito, alternar, usuarioId } = useFavoritos();
+  const [favoritando, setFavoritando] = useState(false);
+  const fav = ehFavorito(livro.id);
+  const esgotado = !(livro.estoque > 0);
+  const meuLivro = Boolean(usuarioId && usuarioId === livro.vendedor_id);
+  const href = `/livro/${livro.id}`;
 
-  function adicionar() {
-    setCarregando(true);
-    // Simula a chamada ajax do main.js -> api/carrinho.php.
-    // Com banco ativo, seria: fetch('/api/carrinho', {...}).
-    setTimeout(() => {
-      adicionarAoCarrinho(livro.id, 1);
-      window.dispatchEvent(new Event('carrinho-atualizado'));
-      window.showToast?.({
-        titulo: 'Adicionado ao carrinho!',
-        descricao: livro.titulo,
-        livro,
-        acao: { rotulo: 'Ver carrinho', href: '/carrinho' },
-      });
-      setCarregando(false);
-    }, 300);
-  }
-
-  function favoritar() {
-    const { adicionado } = toggleFavorito(livro.id);
-    setEhFav(adicionado);
+  function comprar() {
+    adicionarAoCarrinho(livro.id, 1);
     window.showToast?.({
-      titulo: adicionado ? 'Adicionado aos favoritos' : 'Removido dos favoritos',
+      titulo: 'Adicionado ao carrinho',
       descricao: livro.titulo,
       livro,
-      acao: adicionado ? { rotulo: 'Ver favoritos', href: '/favoritos' } : undefined,
+      acao: { rotulo: 'Ver carrinho', href: '/carrinho' },
+    });
+  }
+
+  async function favoritar() {
+    if (favoritando) return;
+    setFavoritando(true);
+    const r = await alternar(livro.id);
+    setFavoritando(false);
+    if (r.redirecionou) return;
+    if (r.erro) {
+      window.showToast?.(r.erro, 'error');
+      return;
+    }
+    window.showToast?.({
+      titulo: r.favoritado ? 'Adicionado aos favoritos' : 'Removido dos favoritos',
+      descricao: livro.titulo,
+      livro,
+      acao: r.favoritado ? { rotulo: 'Ver favoritos', href: '/favoritos' } : undefined,
     });
   }
 
   return (
     <article className="card-livro">
-      {livro._score ? (
-        <span className="selo selo-ia"><Icone nome="robo" alt="IA" tam={13} /> IA</span>
-      ) : destaqueFixo || livro.destaque ? (
-        <span className="selo">DESTAQUE</span>
-      ) : null}
-
-      <Link className="capa" href={`/produto/${livro.id}`}>
+      <Link className="capa" href={href} tabIndex={-1} aria-hidden="true">
         <CapaLivro livro={livro} />
       </Link>
 
       <div className="card-corpo">
-        <h3 className="card-titulo"><Link href={`/produto/${livro.id}`}>{livro.titulo}</Link></h3>
+        <h3 className="card-titulo"><Link href={href}>{livro.titulo}</Link></h3>
         <div className="card-autor">{livro.autor}</div>
-        <div className="card-avaliacao">
-          {estrelas(livro.avaliacao)} <small>({livro.numAvaliacoes})</small>
-        </div>
+        {livro.lojas?.nome_loja && <small className="card-loja">Loja: {livro.lojas.nome_loja}</small>}
         <div className="card-preco">
           <span className="preco">{preco(livro.preco)}</span>
-          {livro.precoOriginal > livro.preco && (
-            <span className="preco-original">{preco(livro.precoOriginal)}</span>
-          )}
         </div>
+        {motivo && (
+          <p className="card-motivo"><Icone nome="faiscas" alt="" tam={13} /> {motivo}</p>
+        )}
       </div>
 
-      {livro._razoes && livro._razoes.length > 0 && (
-        <ul className="razoes">
-          {livro._razoes.slice(0, 3).map((r) => (
-            <li key={r}><Icone nome="faiscas" alt="Razão" tam={12} /> {r}</li>
-          ))}
-        </ul>
-      )}
-
       <div className="card-acoes">
-        <button className="btn btn-primary btn-sm add-carrinho" data-id={livro.id} onClick={adicionar} disabled={carregando || livro.estoque <= 0}>
-          <Icone nome="carrinho" alt="Comprar" tam={15} /> {carregando ? '...' : 'Comprar'}
-        </button>
+        {meuLivro ? (
+          <span className="btn btn-ghost btn-sm" aria-disabled="true" title="Você não pode comprar os próprios livros">Este livro é seu</span>
+        ) : (
+          <button className="btn btn-primary btn-sm" type="button" onClick={comprar} disabled={esgotado}>
+            {esgotado ? 'Esgotado' : <><Icone nome="carrinho" alt="" tam={15} /> Comprar</>}
+          </button>
+        )}
         <button
-          className={`btn btn-ghost btn-sm btn-fav ${ehFav ? 'fav' : ''}`}
+          className={`btn btn-ghost btn-sm btn-fav ${fav ? 'fav' : ''}`}
+          type="button"
           onClick={favoritar}
-          title="Favoritar"
+          disabled={favoritando}
+          title={fav ? 'Remover dos favoritos' : 'Favoritar'}
+          aria-pressed={fav}
         >
-          <Icone nome={ehFav ? 'coracao' : 'coracao-vazio'} alt="Favoritar" tam={17} />
+          <Icone nome={fav ? 'coracao' : 'coracao-vazio'} alt={fav ? 'Remover dos favoritos' : 'Favoritar'} tam={17} />
         </button>
       </div>
     </article>

@@ -14,39 +14,25 @@ import ThemeToggle from '@/components/ThemeToggle';
 import { APP_NAME } from '@/lib/config';
 import { qtdCarrinho } from '@/lib/clientStore';
 import { limparCachePerfil } from '@/lib/perfilStore';
-import { createClient } from '@/lib/supabase/client';
+import { useTipoConta } from '@/lib/useTipoConta';
 
 export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
-  const [supabase] = useState(() => createClient());
+  // Usuário e tipo da conta ('cliente' | 'vendedor'), só para ajustar o menu
+  // (a segurança é a RLS).
+  const { usuario, tipo, supabase } = useTipoConta();
   const [qtdCart, setQtdCart] = useState(0);
-  const [usuario, setUsuario] = useState(null);
-  const [tipo, setTipo] = useState(null); // 'cliente' | 'vendedor' | null
   const [menuAberto, setMenuAberto] = useState(false);
   const [busca, setBusca] = useState('');
 
   useEffect(() => {
-    async function carregarUsuario() {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUsuario(user);
-      if (!user) {
-        setTipo(null);
-        return;
-      }
-      // Tipo da conta só para ajustar o menu (a segurança é a RLS).
-      const { data: perfil } = await supabase.from('profiles').select('tipo').eq('id', user.id).maybeSingle();
-      setTipo(perfil?.tipo === 'vendedor' ? 'vendedor' : 'cliente');
-    }
-
-    carregarUsuario();
     setQtdCart(qtdCarrinho());
 
     // Atualiza o badge do carrinho quando itens mudam em outra aba
     const atualizar = () => setQtdCart(qtdCarrinho());
     window.addEventListener('storage', atualizar);
     window.addEventListener('carrinho-atualizado', atualizar);
-    window.addEventListener('usuario-atualizado', carregarUsuario);
 
     // Logout (inclusive em outra aba ou sessão expirada): apaga o cache do perfil.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((evento) => {
@@ -57,16 +43,14 @@ export default function Header() {
       subscription.unsubscribe();
       window.removeEventListener('storage', atualizar);
       window.removeEventListener('carrinho-atualizado', atualizar);
-      window.removeEventListener('usuario-atualizado', carregarUsuario);
     };
   }, [supabase]);
 
   async function sair() {
     await supabase.auth.signOut();
     limparCachePerfil();
+    setMenuAberto(false);
     window.dispatchEvent(new Event('usuario-atualizado'));
-    setUsuario(null);
-    setTipo(null);
     router.push('/');
     router.refresh();
   }
@@ -105,7 +89,7 @@ export default function Header() {
           <Link href="/ia" className="nav-ia"><Icone nome="faiscas" alt="IA" tam={16} /> Recomendar com IA</Link>
           {tipo === 'vendedor' ? (
             <Link href="/painel-vendedor" className={`nav-vender ${pathname.startsWith('/painel-vendedor') ? 'ativo' : ''}`}>
-              <Icone nome="livros" alt="" tam={16} /> Painel do vendedor
+              <Icone nome="livros" alt="" tam={16} /> Meu painel
             </Link>
           ) : (
             <Link href="/vendedor/cadastro" className={`nav-vender ${pathname.startsWith('/vendedor') ? 'ativo' : ''}`}>
@@ -125,7 +109,7 @@ export default function Header() {
               {menuAberto && (
                 <div className="dropdown-menu">
                   {tipo === 'vendedor' && (
-                    <Link href="/painel-vendedor" onClick={() => setMenuAberto(false)}><Icone nome="livros" alt="" tam={15} /> Painel do vendedor</Link>
+                    <Link href="/painel-vendedor" onClick={() => setMenuAberto(false)}><Icone nome="livros" alt="" tam={15} /> Meu painel</Link>
                   )}
                   <Link href="/minha-conta" onClick={() => setMenuAberto(false)}>Minha conta</Link>
                   <Link href="/favoritos" onClick={() => setMenuAberto(false)}><Icone nome="coracao" alt="Favoritos" tam={15} /> Favoritos</Link>

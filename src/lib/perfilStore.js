@@ -18,6 +18,8 @@
  */
 
 import { STORAGE_KEYS } from '@/lib/config';
+import { COLUNAS_CARD } from '@/lib/repositories/livroRepository';
+import { COLUNAS_PEDIDO } from '@/lib/pedidos';
 
 /** Tempo em que o cache é considerado fresco (10 minutos). */
 export const CACHE_TTL_MS = 10 * 60 * 1000;
@@ -37,6 +39,20 @@ export function limparCachePerfil() {
   if (typeof window === 'undefined') return;
   try {
     localStorage.removeItem(STORAGE_KEYS.PERFIL);
+  } catch {
+    // localStorage indisponível — ignora.
+  }
+}
+
+/**
+ * Marca o cache como velho sem apagá-lo: a próxima tela de perfil mostra
+ * o que tem e busca de novo (usado quando um favorito muda fora dela).
+ */
+export function invalidarCachePerfil() {
+  const cache = lerBruto();
+  if (!cache) return;
+  try {
+    localStorage.setItem(STORAGE_KEYS.PERFIL, JSON.stringify({ ...cache, atualizadoEm: 0 }));
   } catch {
     // localStorage indisponível — ignora.
   }
@@ -88,22 +104,28 @@ export async function buscarPerfil(supabase, userId) {
   return data;
 }
 
-/** select *, livros(*) from favoritos where user_id = auth.uid() */
+/**
+ * Favoritos com os dados do livro (colunas listadas: nunca livros(*),
+ * que traria a coluna `busca`). Livro desativado volta com livros = null.
+ */
 export async function buscarFavoritos(supabase, userId) {
   const { data, error } = await supabase
     .from('favoritos')
-    .select('*, livros(*)')
+    .select(`id, livro_id, created_at, livros(${COLUNAS_CARD})`)
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
   if (error) throw error;
   return data || [];
 }
 
-/** select *, itens_pedido(*, livros(*)) from pedidos where user_id = auth.uid() */
+/**
+ * Pedidos do usuário com os itens. Usa titulo_livro e foto_url gravados no
+ * momento da compra (sem embed de `livros`: livro desativado voltaria null).
+ */
 export async function buscarPedidos(supabase, userId) {
   const { data, error } = await supabase
     .from('pedidos')
-    .select('*, itens_pedido(*, livros(*))')
+    .select(COLUNAS_PEDIDO)
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
   if (error) throw error;

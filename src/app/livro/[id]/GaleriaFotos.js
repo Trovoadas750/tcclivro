@@ -1,26 +1,25 @@
 /**
  * Galeria das fotos do livro (foto grande + miniaturas clicáveis).
+ * Toda imagem usa o fallback de CapaLivro: se a foto escolhida falhar,
+ * tenta a outra e, por fim, a capa genérica.
  */
 'use client';
 
 import { useState } from 'react';
-import Icone from '@/components/Icone';
+import CapaLivro from '@/components/CapaLivro';
+import { fotosDoLivro } from '@/lib/vendedor';
 
-export default function GaleriaFotos({ fotos = [], titulo = '' }) {
+export default function GaleriaFotos({ livro }) {
+  const fotos = fotosDoLivro(livro);
   const [atual, setAtual] = useState(0);
 
-  if (fotos.length === 0) {
-    return (
-      <div className="galeria-principal galeria-vazia">
-        <Icone nome="livros" alt="Sem foto" tam={60} />
-      </div>
-    );
-  }
+  // Foto escolhida primeiro; as outras ficam como fallback.
+  const ordem = fotos.length ? [fotos[atual], ...fotos.filter((_, i) => i !== atual)] : [];
 
   return (
     <div className="galeria">
       <div className="galeria-principal">
-        <img src={fotos[atual]} alt={`${titulo} — foto ${atual + 1}`} />
+        <CapaLivro livro={livro} fotos={ordem} alt={`${livro.titulo} — foto ${atual + 1}`} />
       </div>
       {fotos.length > 1 && (
         <div className="galeria-miniaturas">
@@ -32,7 +31,7 @@ export default function GaleriaFotos({ fotos = [], titulo = '' }) {
               onClick={() => setAtual(i)}
               aria-label={`Ver foto ${i + 1}`}
             >
-              <img src={url} alt="" />
+              <CapaLivro livro={livro} fotos={[url]} alt="" />
             </button>
           ))}
         </div>

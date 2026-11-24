@@ -1,106 +1,65 @@
 /**
- * Cadastro de VENDEDOR ("Tornar-se vendedor").
- * Formulário próprio, separado do cadastro de cliente: o tipo da conta
- * não é escolhido pelo usuário, ele é fixado como 'vendedor' aqui e
- * enviado em options.data.tipo do signUp (o trigger cria o perfil).
+ * "Tornar-se vendedor" (/vendedor/cadastro) — migração de conta.
  *
- * O nome e a descrição da loja vão nos metadados e a loja é criada
- * automaticamente no primeiro acesso ao painel (ver src/lib/useVendedor.js).
+ * Existe um único cadastro e toda conta nasce cliente. Aqui o cliente
+ * logado abre a loja: rpc('tornar_vendedor', { p_nome_loja, p_descricao })
+ * muda a conta para vendedor E cria a loja numa etapa só (tudo ou nada).
+ *
+ *   - Deslogado → vantagens + "Criar conta" / "Entrar" (voltam para cá).
+ *   - Cliente   → formulário "Abrir minha loja".
+ *   - Vendedor  → redireciona para /painel-vendedor.
  */
 'use client';
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import Icone from '@/components/Icone';
-import CampoSenha from '@/components/CampoSenha';
-import { cadastrar } from '@/app/auth/actions';
-import { createClient } from '@/lib/supabase/client';
+import FormLoja from '@/components/vendedor/FormLoja';
 import { limparCachePerfil } from '@/lib/perfilStore';
+import { comProximo } from '@/lib/redirecionamento';
+import { useTipoConta } from '@/lib/useTipoConta';
+
+const ESTA_PAGINA = '/vendedor/cadastro';
 
 const VANTAGENS = [
-  { icone: 'livros', titulo: 'Sua vitrine', texto: 'Crie sua loja e publique quantos livros quiser.' },
-  { icone: 'dinheiro', titulo: 'Sem mensalidade', texto: 'Cadastro gratuito para vender na Casa do Leitor.' },
+  { icone: 'livros', titulo: 'Sua vitrine', texto: 'Abra sua loja e publique quantos livros quiser, com fotos.' },
+  { icone: 'dinheiro', titulo: 'Sem mensalidade', texto: 'Vender na Casa do Leitor é gratuito.' },
   { icone: 'alvo', titulo: 'Controle total', texto: 'Edite, pause ou remova seus anúncios quando quiser.' },
+  { icone: 'faiscas', titulo: 'Indicados pela IA', texto: 'Seus livros entram nas recomendações da nossa IA.' },
 ];
 
-export default function CadastroVendedor() {
+export default function TornarSeVendedor() {
   const router = useRouter();
-  const [supabase] = useState(() => createClient());
-  const [contaAtual, setContaAtual] = useState({ carregando: true, tipo: null, email: null });
+  const { carregando, usuario, tipo, supabase } = useTipoConta();
 
-  const [nome, setNome] = useState('');
-  const [nomeLoja, setNomeLoja] = useState('');
-  const [descricaoLoja, setDescricaoLoja] = useState('');
-  const [email, setEmail] = useState('');
-  const [senha, setSenha] = useState('');
-  const [confirmacao, setConfirmacao] = useState('');
-  const [erro, setErro] = useState(null);
-  const [enviando, setEnviando] = useState(false);
-
-  // Quem já está logado: vendedor vai direto ao painel; cliente recebe aviso.
+  // Quem já é vendedor não tem o que fazer aqui.
   useEffect(() => {
-    let ativo = true;
-    (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user;
-      if (!user) {
-        if (ativo) setContaAtual({ carregando: false, tipo: null, email: null });
-        return;
-      }
-      const { data: perfil } = await supabase.from('profiles').select('tipo').eq('id', user.id).maybeSingle();
-      if (!ativo) return;
-      if (perfil?.tipo === 'vendedor') {
-        router.replace('/painel-vendedor');
-        return;
-      }
-      setContaAtual({ carregando: false, tipo: 'cliente', email: user.email });
-    })();
-    return () => { ativo = false; };
-  }, [supabase, router]);
+    if (tipo === 'vendedor') router.replace('/painel-vendedor');
+  }, [tipo, router]);
 
-  async function sair() {
-    await supabase.auth.signOut();
-    limparCachePerfil();
-    window.dispatchEvent(new Event('usuario-atualizado'));
-    setContaAtual({ carregando: false, tipo: null, email: null });
-    router.refresh();
-  }
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setErro(null);
-
-    if (nome.trim().length < 2) return setErro('Informe o nome do responsável.');
-    if (nomeLoja.trim().length < 2) return setErro('Informe o nome da sua loja.');
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return setErro('E-mail inválido.');
-    if (senha.length < 6) return setErro('A senha deve ter ao menos 6 caracteres.');
-    if (senha !== confirmacao) return setErro('As senhas não coincidem.');
-
-    setEnviando(true);
-    const resultado = await cadastrar({
-      nome: nome.trim(),
-      email: email.trim(),
-      senha,
-      tipo: 'vendedor',
-      loja: { nome_loja: nomeLoja.trim(), descricao: descricaoLoja.trim() },
+  async function abrirLoja({ nome_loja, descricao }) {
+    const { error } = await supabase.rpc('tornar_vendedor', {
+      p_nome_loja: nome_loja,
+      p_descricao: descricao || null,
     });
-    setEnviando(false);
 
-    if (resultado?.erro) {
-      setErro(resultado.erro);
-      return;
+    if (error) {
+      console.error('Erro em tornar_vendedor:', error);
+      // Erros de regra vêm com code P0001 e mensagem pronta em português.
+      return { erro: error.code === 'P0001' ? error.message : 'Não foi possível abrir sua loja. Tente de novo.' };
     }
 
-    // Sem verificação por e-mail: já entra logado e vai para o painel,
-    // onde a loja é criada automaticamente.
+    // O tipo da conta mudou: atualiza cabeçalho/menus e descarta o cache do perfil.
+    limparCachePerfil();
     window.dispatchEvent(new Event('usuario-atualizado'));
-    window.showToast?.('Conta de vendedor criada! Vamos montar sua loja.');
+    window.showToast?.('Sua loja está aberta! Cadastre seu primeiro livro.');
     router.push('/painel-vendedor');
     router.refresh();
+    return { ok: true, manterBloqueado: true };
   }
 
-  if (contaAtual.carregando) {
+  if (carregando || tipo === 'vendedor') {
     return <div style={{ marginTop: 40, textAlign: 'center' }}>Carregando...</div>;
   }
 
@@ -121,58 +80,28 @@ export default function CadastroVendedor() {
       </section>
 
       <div className="painel vendedor-form">
-        {contaAtual.tipo === 'cliente' ? (
+        {usuario ? (
+          <>
+            <h2 style={{ marginBottom: 4 }}>Abrir minha loja</h2>
+            <p style={{ color: 'var(--muted)', marginBottom: 18, fontSize: 14 }}>
+              Sua conta <b>{usuario.email}</b> passa a ser de vendedor e a loja é criada na hora.
+              O nome da loja aparece para os leitores na vitrine.
+            </p>
+            <FormLoja onSalvar={abrirLoja} rotuloBotao="Abrir minha loja" rotuloEnviando="Abrindo sua loja..." />
+          </>
+        ) : (
           <div className="auth-card">
-            <span style={{ display: 'inline-block' }}><Icone nome="info" alt="" tam={40} /></span>
-            <h2 style={{ margin: '8px 0' }}>Você está conectado como cliente</h2>
+            <span style={{ display: 'inline-block' }}><Icone nome="usuario" alt="" tam={40} /></span>
+            <h2 style={{ margin: '8px 0' }}>Entre para abrir sua loja</h2>
             <p className="sub">
-              A conta <b>{contaAtual.email}</b> é de cliente, e o tipo de uma conta não pode ser alterado.
-              Para vender, saia e crie uma conta de vendedor com outro e-mail.
+              Para vender, use sua conta da Casa do Leitor. Ainda não tem uma? Crie grátis em menos de um minuto
+              e volte para esta página para abrir a loja.
             </p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <button className="btn btn-accent" type="button" onClick={sair}>Sair e criar conta de vendedor</button>
-              <Link className="btn btn-ghost" href="/">Voltar ao início</Link>
+              <Link className="btn btn-accent" href={comProximo('/auth/registro', ESTA_PAGINA)}>Criar conta</Link>
+              <Link className="btn btn-ghost" href={comProximo('/auth/login', ESTA_PAGINA)}>Entrar</Link>
             </div>
           </div>
-        ) : (
-          <>
-            <h2 style={{ marginBottom: 4 }}>Criar conta de vendedor</h2>
-            <p style={{ color: 'var(--muted)', marginBottom: 18, fontSize: 14 }}>Preencha os dados da sua loja e do responsável.</p>
-
-            {erro && <div className="toast toast-error">{erro}</div>}
-
-            <form onSubmit={handleSubmit} className="form-grid">
-              <div className="campo">
-                <label htmlFor="nome-loja">Nome da loja *</label>
-                <input type="text" id="nome-loja" required maxLength={80} autoFocus value={nomeLoja} onChange={(e) => setNomeLoja(e.target.value)} placeholder="Ex.: Sebo da Esquina" />
-              </div>
-              <div className="campo">
-                <label htmlFor="descricao-loja">Descrição da loja (opcional)</label>
-                <textarea id="descricao-loja" rows={3} maxLength={500} value={descricaoLoja} onChange={(e) => setDescricaoLoja(e.target.value)} placeholder="Conte o que sua loja vende" />
-              </div>
-              <div className="campo">
-                <label htmlFor="nome">Nome do responsável *</label>
-                <input type="text" id="nome" required autoComplete="name" value={nome} onChange={(e) => setNome(e.target.value)} />
-              </div>
-              <div className="campo">
-                <label htmlFor="email">E-mail *</label>
-                <input type="email" id="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-              </div>
-              <div className="dupla">
-                <CampoSenha id="senha" label="Senha *" required minLength={6} autoComplete="new-password" value={senha} onChange={(e) => setSenha(e.target.value)} />
-                <CampoSenha id="confirmacao" label="Confirmar senha *" required minLength={6} autoComplete="new-password" value={confirmacao} onChange={(e) => setConfirmacao(e.target.value)} />
-              </div>
-              <button className="btn btn-accent" type="submit" style={{ justifyContent: 'center' }} disabled={enviando}>
-                {enviando ? 'Criando conta...' : 'Criar conta de vendedor'}
-              </button>
-            </form>
-
-            <div className="auth-alt" style={{ textAlign: 'center' }}>
-              Já é vendedor? <Link href="/auth/login?proximo=/painel-vendedor">Entrar</Link>
-              <br />
-              Quer só comprar? <Link href="/auth/registro">Criar conta de cliente</Link>
-            </div>
-          </>
         )}
       </div>
     </div>

@@ -21,7 +21,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Icone from '@/components/Icone';
-import { capaDataURL } from '@/lib/capa';
+import CapaLivro from '@/components/CapaLivro';
 
 export default function Toasts() {
   const [mensagens, setMensagens] = useState([]);
@@ -56,7 +56,7 @@ export default function Toasts() {
         <div key={m.id} className="toast-card" role="status">
           <span className={`toast-avatar tipo-${m.tipo || 'success'}`}>
             {m.livro ? (
-              <img src={capaDataURL(m.livro)} alt={m.livro.titulo} />
+              <CapaLivro livro={m.livro} />
             ) : (
               <Icone nome="livros" alt="Casa do Leitor" tam={19} />
             )}

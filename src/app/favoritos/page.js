@@ -11,13 +11,15 @@ import Icone from '@/components/Icone';
 import CapaLivro from '@/components/CapaLivro';
 import { preco } from '@/lib/format';
 import { usePerfil } from '@/lib/usePerfil';
+import { sincronizarFavorito } from '@/lib/favoritos';
 
 export default function Favoritos() {
   const { carregando, usuario, favoritos, erro, removerFavorito } = usePerfil();
 
   async function remover(livro) {
     const r = await removerFavorito(livro.id);
-    window.showToast?.(r.ok ? { titulo: 'Removido dos favoritos', descricao: livro.titulo } : r.erro);
+    if (r.ok) sincronizarFavorito(livro.id, false); // coração dos cards
+    window.showToast?.(r.ok ? { titulo: 'Removido dos favoritos', descricao: livro.titulo, livro } : r.erro);
   }
 
   if (carregando || !usuario) {
@@ -44,16 +46,12 @@ export default function Favoritos() {
         <div className="grid-livros">
           {livros.map((livro) => (
             <article key={livro.id} className="card-livro">
-              <div className="capa">
-                {livro.capa_url ? (
-                  <img src={livro.capa_url} alt={livro.titulo} style={{ width: '100%' }} loading="lazy" />
-                ) : (
-                  <CapaLivro livro={livro} />
-                )}
-              </div>
+              <Link className="capa" href={`/livro/${livro.id}`} tabIndex={-1} aria-hidden="true">
+                <CapaLivro livro={livro} />
+              </Link>
 
               <div className="card-corpo">
-                <h3 className="card-titulo">{livro.titulo}</h3>
+                <h3 className="card-titulo"><Link href={`/livro/${livro.id}`}>{livro.titulo}</Link></h3>
                 <div className="card-autor">{livro.autor}</div>
                 {livro.categoria && <small style={{ color: 'var(--muted)' }}>{livro.categoria}</small>}
                 <div className="card-preco">

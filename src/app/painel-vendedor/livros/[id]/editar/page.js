@@ -10,7 +10,7 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import FormLivro from '@/components/vendedor/FormLivro';
 import { useVendedor } from '@/lib/useVendedor';
-import { ehUuid } from '@/lib/vendedor';
+import { COLUNAS_LIVRO_VENDEDOR, ehUuid } from '@/lib/vendedor';
 
 export default function EditarLivro() {
   const { id } = useParams();
@@ -26,7 +26,7 @@ export default function EditarLivro() {
     let ativo = true;
     supabase
       .from('livros')
-      .select('*')
+      .select(COLUNAS_LIVRO_VENDEDOR)
       .eq('id', id)
       .eq('vendedor_id', usuario.id)
       .maybeSingle()

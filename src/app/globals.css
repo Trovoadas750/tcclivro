@@ -789,3 +789,106 @@ a:hover { text-decoration: underline; }
   .item-acoes { justify-content: flex-start; width: 100%; }
   .painel-topo h1 { font-size: 24px; }
 }
+
+/* ---------- Catálogo real (Parte B) ---------- */
+/* Aviso amarelo (ex.: quantidade do carrinho ajustada ao estoque) */
+.toast.toast-warning { background: var(--warning-soft); border-color: var(--accent); }
+
+/* Faixa horizontal de livros (categorias da página inicial) */
+.faixa-livros {
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(170px, 185px);
+  gap: 18px; overflow-x: auto; padding: 4px 2px 14px; scroll-snap-type: x proximity;
+  overscroll-behavior-x: contain;
+}
+.faixa-livros > * { scroll-snap-align: start; }
+.faixa-livros .card-livro:hover { transform: none; }
+
+/* Página /busca: filtros à esquerda, resultados à direita */
+.catalogo { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 28px; }
+.catalogo-filtros { flex: 0 0 240px; min-width: 200px; }
+.catalogo-filtros > .painel { position: sticky; top: 100px; max-height: calc(100vh - 120px); overflow-y: auto; }
+.catalogo-resultados { flex: 1; min-width: 0; }
+.filtro-lista { display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.filtro-lista a { color: var(--ink); padding: 4px 8px; border-radius: 8px; }
+.filtro-lista a:hover { background: var(--hover-bg); text-decoration: none; }
+.filtro-lista a.ativo { background: var(--primary-soft); color: var(--primary-dark); font-weight: 700; }
+.filtro-lista small { color: var(--muted); font-weight: 400; }
+
+.paginacao { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; align-items: center; margin: 32px 0 8px; }
+.paginacao [aria-disabled="true"] { opacity: .45; pointer-events: none; }
+.paginacao-reticencias { color: var(--muted); padding: 0 4px; }
+
+/* Motivo da indicação (IA) dentro do card */
+.card-motivo { font-size: 12.5px; color: var(--ink); background: var(--primary-soft); border-radius: 8px; padding: 6px 8px; line-height: 1.35; }
+
+/* Carrinho: item indisponível/esgotado */
+.cart-item-indisponivel .cart-info, .cart-item-indisponivel .cart-capa { opacity: .6; }
+.cart-capa-vazia { display: grid; place-items: center; aspect-ratio: 2/3; background: var(--hover-bg); }
+.qtd-controle button:disabled { opacity: .35; cursor: not-allowed; }
+
+/* Créditos do catálogo no rodapé */
+.rodape-base { display: flex; flex-direction: column; gap: 4px; }
+.rodape-creditos { font-size: 12px; opacity: .9; }
+.rodape-creditos a { display: inline; padding: 0; text-decoration: underline; }
+
+@media (max-width: 700px) {
+  .catalogo-filtros { flex-basis: 100%; }
+  .catalogo-filtros > .painel { position: static; max-height: none; }
+  .cart-item { flex-wrap: wrap; }
+  .cart-info { flex-basis: calc(100% - 80px); }
+}
+
+/* ---------- Caixa de compra (página do livro) ---------- */
+.caixa-compra {
+  display: grid; gap: 10px; max-width: 360px;
+  border: 1px solid var(--line); border-radius: 14px; padding: 16px;
+  background: var(--card); margin: 0 0 22px;
+}
+.caixa-compra .btn { justify-content: center; width: 100%; padding: 12px 16px; }
+.caixa-compra-estoque { color: var(--success); font-weight: 700; font-size: 15px; }
+.caixa-compra-estoque.esgotado { color: var(--danger); }
+.caixa-compra-qtd { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 14px; }
+.caixa-compra-nota { font-size: 13px; color: var(--muted); }
+.caixa-compra-aviso { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 14px; }
+.btn-fav-texto.fav { background: var(--danger-soft); }
+
+/* ---------- Recomendação (página /ia e chatbot) ---------- */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+.ia-campo-rodape { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 12.5px; opacity: .9; margin-top: 6px; }
+.ia-dados-pessoais { display: inline-flex; align-items: center; gap: 4px; }
+.ia-sugestoes { justify-content: center; margin-top: 14px; }
+.ia-sugestoes .chip { font-size: 13px; padding: 7px 13px; color: var(--ink); }
+.ia-sugestoes .chip:disabled { opacity: .6; cursor: wait; }
+.ia-aviso { text-align: center; font-size: 12.5px; color: var(--muted); margin-top: 18px; }
+.ia-mensagem { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 18px; }
+.ia-mensagem small { color: var(--muted); display: block; margin-bottom: 2px; }
+.ia-mensagem p { font-size: 16px; font-weight: 600; }
+
+.lista-recomendacoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 18px; }
+.card-recomendacao {
+  display: flex; gap: 14px; padding: 14px; background: var(--card);
+  border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.card-recomendacao-capa { flex: 0 0 96px; aspect-ratio: 2/3; border-radius: 8px; overflow: hidden; background: var(--hover-bg); align-self: flex-start; }
+.card-recomendacao-capa img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.card-recomendacao-corpo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.card-recomendacao-corpo .preco { font-size: 16px; }
+.card-recomendacao-acoes { display: flex; gap: 8px; flex-wrap: wrap; margin-top: auto; padding-top: 6px; }
+.card-recomendacao.compacto { padding: 10px; gap: 10px; box-shadow: none; }
+.card-recomendacao.compacto .card-recomendacao-capa { flex-basis: 58px; }
+.card-recomendacao.compacto .card-titulo { font-size: 13.5px; }
+.card-recomendacao.compacto .card-motivo { font-size: 12px; }
+.card-recomendacao.compacto .btn { padding: 5px 10px; font-size: 12px; }
+
+.msg.ia:has(.chat-resultados) { max-width: 100%; }
+.chat-resultados { display: grid; gap: 8px; margin-top: 10px; }
+.chat-rodape { display: block; color: var(--muted); font-size: 11.5px; margin-top: 8px; }
+.msg-erro { color: var(--danger); font-weight: 600; }
+.chat-input button:disabled, .chat-input input:disabled { opacity: .6; cursor: not-allowed; }
+.chat-aviso { font-size: 11.5px; color: var(--muted); padding: 0 12px 10px; text-align: center; }
+.chat-aviso a { font-weight: 600; }
+
+@media (max-width: 520px) {
+  .lista-recomendacoes { grid-template-columns: 1fr; }
+  .card-recomendacao-capa { flex-basis: 80px; }
+}

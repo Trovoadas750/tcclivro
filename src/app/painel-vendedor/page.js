@@ -10,10 +10,11 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import Icone from '@/components/Icone';
+import CapaLivro from '@/components/CapaLivro';
 import FormLoja from '@/components/vendedor/FormLoja';
 import { preco } from '@/lib/format';
 import { useVendedor } from '@/lib/useVendedor';
-import { apagarFotos, fotosDoLivro, mensagemErroVendedor } from '@/lib/vendedor';
+import { COLUNAS_LIVRO_VENDEDOR, apagarFotos, fotosDoLivro, mensagemErroVendedor } from '@/lib/vendedor';
 
 export default function PainelVendedor() {
   const { carregando, usuario, perfil, loja, erro, supabase, salvarLoja } = useVendedor();
@@ -29,7 +30,7 @@ export default function PainelVendedor() {
     setCarregandoLivros(true);
     const { data, error } = await supabase
       .from('livros')
-      .select('*')
+      .select(COLUNAS_LIVRO_VENDEDOR)
       .eq('vendedor_id', usuario.id)
       .order('created_at', { ascending: false });
     if (error) {
@@ -52,7 +53,7 @@ export default function PainelVendedor() {
       .from('livros')
       .update({ ativo: !livro.ativo })
       .eq('id', livro.id)
-      .select();
+      .select(COLUNAS_LIVRO_VENDEDOR);
     setOcupado(null);
     if (error || !data?.length) {
       window.showToast?.(error ? mensagemErroVendedor(error) : 'Você não pode alterar este livro.', 'error');
@@ -160,12 +161,11 @@ export default function PainelVendedor() {
         ) : (
           <div className="lista-vendedor">
             {livros.map((livro) => {
-              const [capa] = fotosDoLivro(livro);
               const emAcao = ocupado === livro.id;
               return (
                 <article key={livro.id} className={`item-vendedor painel ${livro.ativo ? '' : 'inativo'}`}>
                   <div className="item-capa">
-                    {capa ? <img src={capa} alt={livro.titulo} loading="lazy" /> : <Icone nome="livros" alt="" tam={30} />}
+                    <CapaLivro livro={livro} />
                   </div>
                   <div className="item-info">
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>

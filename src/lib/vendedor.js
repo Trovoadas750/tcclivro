@@ -2,22 +2,26 @@
  * ============================================================
  *  ÁREA DO VENDEDOR — utilitários (client-side)
  * ============================================================
- *  - Tradução dos erros do Supabase (BDcontexto.md, seção 9).
+ *  - Tradução dos erros do Supabase (BDcontexto.md, seção 10).
  *  - Conversão de preço digitado ("29,90") para número.
  *  - Compressão e upload das fotos dos livros (Storage).
  *
- *  As fotos ficam no bucket `livros-fotos`, na pasta do vendedor:
- *  `<user.id>/<uuid>.jpg`. Bucket e colunas `fotos`/`ano_lancamento`
- *  são criados por database/vendedor-livros.sql.
+ *  As fotos ficam no bucket `livros`, na pasta do vendedor:
+ *  `<user.id>/<uuid>.jpg`. Cada livro tem exatamente 2 fotos,
+ *  nas colunas `foto_1_url` (principal, vitrine) e `foto_2_url`.
  */
 
-export const BUCKET_FOTOS = 'livros-fotos';
-export const TAMANHO_MAX_FOTO = 10 * 1024 * 1024; // 10 MB antes da compressão
+export const BUCKET_FOTOS = 'livros';
+export const TAMANHO_MAX_FOTO = 10 * 1024 * 1024; // 10 MB antes da compressão (o bucket aceita até 5 MB; a foto é reduzida antes)
+export const ANO_MINIMO = 1450; // check do banco: ano_lancamento between 1450 and 2100
 export const ANO_ATUAL = new Date().getFullYear();
 
-const AVISO_BANCO =
-  'O banco ainda não está preparado para fotos e ano de lançamento. ' +
-  'Peça ao administrador para executar o script database/vendedor-livros.sql no Supabase.';
+/**
+ * Colunas de `livros` para as telas do vendedor.
+ * Nunca usar select('*'): traria a coluna `busca` (tsvector, grande e inútil no front).
+ */
+export const COLUNAS_LIVRO_VENDEDOR =
+  'id, titulo, autor, categoria, sinopse, isbn, ano_lancamento, preco, estoque, ativo, foto_1_url, foto_2_url, created_at';
 
 /**
  * Converte um erro do Supabase (banco ou Storage) em mensagem amigável.
@@ -28,14 +32,19 @@ export function mensagemErroVendedor(error, padrao = 'Não foi possível conclui
   const codigo = error.code || '';
   const msg = String(error.message || '');
 
+  // Regras de negócio das funções do banco: mensagem já vem em português.
+  if (codigo === 'P0001' && msg) return msg;
+
+  if (codigo === '23502') {
+    if (msg.includes('foto_1_url') || msg.includes('foto_2_url')) return 'Envie as 2 fotos do livro.';
+    if (msg.includes('ano_lancamento')) return 'Informe o ano de lançamento.';
+  }
   if (codigo === '23514' || /_check"?/.test(msg)) {
-    if (msg.includes('ano_lancamento')) return 'Ano de lançamento inválido.';
+    if (msg.includes('ano_lancamento')) return 'Informe um ano de lançamento válido.';
+    if (msg.includes('livros_titulo_check') || msg.includes('livros_autor_check')) return 'Preencha o nome do livro e o autor.';
+    if (msg.includes('lojas_nome_loja_check')) return 'O nome da loja precisa ter entre 2 e 80 caracteres.';
     return 'Preço e estoque não podem ser negativos.';
   }
-  // Colunas novas ainda não criadas (script não executado).
-  if (codigo === 'PGRST204' || codigo === '42703') return AVISO_BANCO;
-  // Bucket inexistente.
-  if (/bucket not found/i.test(msg)) return AVISO_BANCO;
 
   if (msg.includes('itens_pedido_livro_id_fkey')) {
     return 'Este livro já foi vendido e não pode ser excluído. Desative-o para tirá-lo da vitrine.';
@@ -44,12 +53,12 @@ export function mensagemErroVendedor(error, padrao = 'Não foi possível conclui
   if (codigo === '23505' && msg.includes('lojas_pkey')) return 'Você já possui uma loja.';
   if (codigo === '42501' || /row-level security/i.test(msg)) return 'Apenas vendedores podem fazer isso.';
   if (codigo === 'PGRST116') return 'Livro não encontrado.';
-  if (/payload too large|maximum allowed size/i.test(msg)) return 'A foto é grande demais. Use uma imagem menor.';
-  if (/mime type|invalid_mime/i.test(msg)) return 'Formato de imagem não aceito. Use JPG, PNG ou WEBP.';
+  if (/payload too large|maximum allowed size|exceeded/i.test(msg)) return 'Envie imagens JPG, PNG ou WEBP de até 5 MB.';
+  if (/mime type|invalid_mime/i.test(msg)) return 'Envie imagens JPG, PNG ou WEBP de até 5 MB.';
+  if (String(error.statusCode || error.status || '') === '403') return 'Não foi possível enviar a foto.';
 
   return padrao;
 }
-
 /** "29,90" | "1.234,56" | "29.9" → número (NaN se inválido). */
 export function precoParaNumero(valor) {
   const texto = String(valor ?? '').replace(/[R$\s]/g, '');
@@ -134,10 +143,9 @@ export async function apagarFotos(supabase, urlsOuCaminhos) {
   }
 }
 
-/** Lista de fotos de um livro (usa `fotos`; cai para `capa_url` em livros antigos). */
+/** As 2 fotos de um livro, na ordem (foto 1 = principal). Ignora as vazias. */
 export function fotosDoLivro(livro) {
-  if (Array.isArray(livro?.fotos) && livro.fotos.length > 0) return livro.fotos;
-  return livro?.capa_url ? [livro.capa_url] : [];
+  return [livro?.foto_1_url, livro?.foto_2_url].filter(Boolean);
 }
 
 /** Valida um uuid (ids de `livros` no Supabase). */

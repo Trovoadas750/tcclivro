@@ -78,30 +78,21 @@ export async function entrar({ email, senha }) {
 }
 
 /**
- * Cadastro com e-mail e senha (supabase.auth.signUp).
- * `tipo` vai em options.data: o trigger `handle_new_user` cria o perfil
- * com esse valor (qualquer coisa diferente de 'vendedor' vira 'cliente').
- * O front NUNCA insere em `profiles`.
- *
- * Para vendedor, o nome/descrição da loja também vão nos metadados; a
- * loja é criada no primeiro acesso ao painel.
+ * Cadastro único com e-mail e senha (supabase.auth.signUp).
+ * Toda conta nasce 'cliente': o trigger `handle_new_user` cria o perfil
+ * e ignora qualquer `tipo` enviado, por isso só o `nome` vai nos metadados.
+ * O front NUNCA insere em `profiles`. Para vender, o cliente logado migra
+ * a conta em /vendedor/cadastro (rpc tornar_vendedor).
  *
  * A conta já entra logada logo após o cadastro.
  */
-export async function cadastrar({ nome, email, senha, tipo = 'cliente', loja = null }) {
+export async function cadastrar({ nome, email, senha }) {
   const supabase = await createClient();
-  const tipoConta = tipo === 'vendedor' ? 'vendedor' : 'cliente';
-
-  const metadados = { nome: String(nome || '').trim(), tipo: tipoConta };
-  if (tipoConta === 'vendedor' && loja?.nome_loja) {
-    metadados.nome_loja = String(loja.nome_loja).trim();
-    if (loja.descricao) metadados.descricao_loja = String(loja.descricao).trim();
-  }
 
   const { data, error } = await supabase.auth.signUp({
     email,
     password: senha,
-    options: { data: metadados },
+    options: { data: { nome: String(nome || '').trim() } },
   });
 
   if (error) {
@@ -123,5 +114,5 @@ export async function cadastrar({ nome, email, senha, tipo = 'cliente', loja = n
     }
   }
 
-  return { ok: true, tipo: tipoConta };
+  return { ok: true, tipo: 'cliente' };
 }
