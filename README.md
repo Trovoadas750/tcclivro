@@ -1,226 +1,139 @@
 # 📚 Casa do Leitor — Livraria Virtual
 
-Projeto de livraria virtual (e-commerce de livros com recomendação por IA), **reescrito em Next.js (App Router) com JavaScript** — sem TypeScript — a partir do projeto original em PHP (`/var/www/html/livraria`).
+E-commerce de livros com **recomendação por IA**, feito em **Next.js 16 (App Router) com JavaScript** e **Supabase** (PostgreSQL + Auth + Storage). Projeto de TCC.
 
-> ⚠️ **Importante:** a conexão com o banco de dados está **deliberadamente desativada**. Todos os arquivos relacionados à conexão **PostgreSQL/Supabase** já existem, estão bem estruturados e comentados, e as funções de busca de livros no banco foram criadas — mas **não executam consultas reais**: enquanto o banco estiver desligado, o site funciona 100% com dados de demonstração (`src/lib/mockData.js`), que são uma cópia fiel do seed original.
+- Catálogo inicial com ~600 livros reais, vitrine pública, busca e filtros por categoria.
+- Cadastro único: toda conta nasce **cliente** e pode virar **vendedor** (abre uma loja e cadastra livros com 2 fotos).
+- Carrinho (funciona deslogado), favoritos, finalização de compra e histórico de pedidos.
+- **IA de recomendação gratuita**: o leitor descreve o que quer ler e recebe até 5 livros do catálogo, cada um com o motivo da escolha. Se a IA externa falhar, o site usa um **modo local** sem IA.
+
+> A referência completa do banco (tabelas, regras de acesso, funções e erros) está em **[`BDcontexto.md`](BDcontexto.md)**. Leia antes de mexer em qualquer coisa que acesse o Supabase.
 
 ---
 
 ## 🚀 Como rodar
 
+Requer **Node.js 20.9 ou mais novo**.
+
 ```bash
-# 1. Instalar dependências (já feita, mas pode repetir)
-npm install
-
-# 2. Ambiente de desenvolvimento (http://localhost:3000)
-npm run dev
-
-# 3. Build de produção
-npm run build
-npm start
+npm install     # instalar dependências
+npm run dev     # desenvolvimento: http://localhost:3000
+npm run build   # build de produção (também verifica erros)
+npm start       # servir a build de produção
 ```
 
-### Credenciais demo (login)
-- **E-mail:** `demo@casadoleitor.com`
-- **Senha:** `123456`
+### Variáveis de ambiente (`.env.local` e painel da Vercel)
 
----
-
-## 🗂️ Mapa do projeto
-
-```
-Casa_do_Leitor/
-├── package.json              # Dependências e scripts (dev/build/start)
-├── next.config.mjs           # Configuração do Next.js
-├── jsconfig.json             # Alias de import @/* -> src/*
-├── .env.local.example        # Modelo das variáveis do Supabase (copiar p/ .env.local)
-├── database/
-│   └── schema.sql            # Schema PostgreSQL do banco (tabelas + seed)
-├── public/
-│   ├── emoji/                # PNGs de ícones (substituem emojis)
-│   └── favicon.ico
-└── src/
-    ├── app/                  # Rotas e páginas (App Router)
-    │   ├── layout.js         # Layout raiz (Header, Footer, Chatbot, Toasts)
-    │   ├── globals.css       # Estilos globais (4 temas)
-    │   ├── page.js           # 🏠 Página inicial
-    │   ├── busca/page.js     # 🔍 Catálogo / busca com filtros
-    │   ├── produto/[id]/     # 📖 Página do produto
-    │   │   ├── page.js       #    (rota dinâmica)
-    │   │   └── BotoesProduto.js
-    │   ├── ia/page.js        # 🤖 Página de recomendação com IA
-    │   ├── carrinho/page.js  # 🛒 Carrinho de compras
-    │   ├── checkout/page.js  # 💳 Finalizar compra (fictício)
-    │   ├── favoritos/page.js # ❤️ Meus favoritos
-    │   ├── meus-pedidos/page.js # 📦 Meus pedidos
-    │   ├── minha-conta/page.js  # 👤 Minha conta
-    │   ├── rastreio/page.js  # 🚚 Rastreio da entrega
-    │   ├── auth/
-    │   │   ├── login/page.js     # Entrar
-    │   │   └── registro/page.js  # Criar conta
-    │   └── api/
-    │       ├── chat/route.js        # API do chatbot BibliIA
-    │       ├── recomendacao/route.js# API de recomendação
-    │       ├── carrinho/route.js    # API do carrinho (esqueleto)
-    │       └── favorito/route.js    # API de favoritos (esqueleto)
-    ├── components/           # Componentes reutilizáveis
-    │   ├── Header.js         # Cabeçalho (busca, nav, tema, usuário, badge)
-    │   ├── Footer.js         # Rodapé
-    │   ├── LivroCard.js      # Card de livro (catálogo)
-    │   ├── Chatbot.js        # Widget BibliIA (assistente flutuante)
-    │   ├── Icone.js          # Ícone via PNG (substitui emoji)
-    │   ├── CapaLivro.js      # Capa de livro SVG (100% offline)
-    │   ├── ThemeToggle.js    # Seletor de temas
-    │   ├── ThemeScript.js    # Aplica tema antes da hidratação
-    │   └── Toasts.js         # Mensagens flutuantes (sucesso/erro)
-    └── lib/                  # Lógica de negócio e dados
-        ├── config.js             # Constantes da aplicação
-        ├── supabase.js           # 🔌 CONEXÃO SUPABASE (desativada!)
-        ├── mockData.js           # Dados de demonstração (seed)
-        ├── repositories/
-        │   └── livroRepository.js# 📖 Consultas de livros (comentadas)
-        ├── iaEngine.js           # Motor de recomendação "IA"
-        ├── format.js             # Formatação (preço, estrelas, datas)
-        ├── capa.js               # Gerador de capas SVG
-        └── clientStore.js        # Carrinho/favoritos/pedidos (localStorage)
-```
-
----
-
-## 📄 O que cada arquivo faz
-
-### Configuração raiz
-
-| Arquivo | Função |
-|---|---|
-| `package.json` | Declara as dependências (`next`, `react`, `react-dom`, `@supabase/supabase-js`) e os scripts `dev`, `build` e `start`. |
-| `next.config.mjs` | Configurações do Next.js (em branco por padrão). |
-| `jsconfig.json` | Define o alias `@/*` para `src/*`, deixando os imports curtos (`@/lib/...`). |
-| `.env.local.example` | Modelo das variáveis de ambiente do Supabase. Copie para `.env.local` e preencha para ativar o banco. |
-
-### Banco de dados (⚠️ desativado de propósito)
-
-| Arquivo | Função |
-|---|---|
-| `database/schema.sql` | Script **PostgreSQL** que cria todas as tabelas (usuarios, categorias, livros, tags, livro_tags, favoritos, carrinho, pedidos, pedido_itens, rastreio, avaliacoes) e insere o seed. É a versão PostgreSQL do `database/livraria.sql` original (MariaDB). Execute no painel do Supabase → SQL Editor. |
-| `src/lib/supabase.js` | **Arquivo central da conexão.** Cria o cliente `@supabase/supabase-js` com a flag `DB_ATIVO = false`. Contém o passo a passo comentado de como ativar: criar o projeto no Supabase, rodar o schema, preencher `.env.local` e trocar a flag para `true`. Enquanto desativado, `getSupabase()` retorna `null` e ninguém consulta o banco. |
-| `src/lib/repositories/livroRepository.js` | **As funções que puxam os dados dos livros do banco** (`buscarRecomendados`, `buscarMaisVendidos`, `buscarCategorias`, `buscarLivros`, `buscarLivroPorId`, `buscarRelacionados`, `buscarAvaliacoes`). Cada função contém o **SQL equivalente comentado** (o que seria executado no Supabase) e, como o banco está desligado, devolve os dados de `mockData.js`. Quando `DB_ATIVO` virar `true`, o bloco real é executado automaticamente. |
-
-### Páginas (src/app)
-
-| Rota | Arquivo | Equivalente PHP | Função |
-|---|---|---|---|
-| `/` | `page.js` | `index.php` | Home: hero, chips de categorias, recomendados pela IA e mais vendidos. É um **Server Component**: chama os repositórios (que hoje devolvem mock, amanhã devolvem banco). |
-| `/busca` | `busca/page.js` | `busca.php` | Catálogo com busca por texto, filtro por categoria e 5 ordenações. Lê `searchParams` (que no Next 16 é Promise → usa `await`). |
-| `/produto/[id]` | `produto/[id]/page.js` | `produto.php` | Ficha do livro: capa, preço, avaliação, estoque, sinopse, relacionados e avaliações. Rota dinâmica (`params` é Promise). |
-| `/produto/[id]` | `produto/[id]/BotoesProduto.js` | `main.js` + `api/*` | Botões "Adicionar ao carrinho" e "Favoritar" (client). Hoje salvam no localStorage. |
-| `/ia` | `ia/page.js` | `ia.php` | Página de recomendação: usuário descreve o gosto, a página chama `/api/recomendacao` e mostra os livros com as razões da escolha. |
-| `/carrinho` | `carrinho/page.js` | `carrinho.php` | Carrinho com controle de quantidade e resumo (localStorage). |
-| `/checkout` | `checkout/page.js` | `checkout.php` | Finalizar compra: exige login, valida endereço e pagamento fictício (cartão/Pix/boleto), cria o pedido e redireciona para o rastreio. |
-| `/favoritos` | `favoritos/page.js` | `favoritos.php` | Lista os livros favoritos. |
-| `/meus-pedidos` | `meus-pedidos/page.js` | `meus-pedidos.php` | Tabela de pedidos do usuário (inclui 1 pedido demo). |
-| `/minha-conta` | `minha-conta/page.js` | `minha-conta.php` | Dados do usuário com contadores e edição de perfil. |
-| `/rastreio` | `rastreio/page.js` | `rastreio.php` | Linha do tempo de etapas da entrega + histórico + conteúdo do pedido. |
-| `/auth/login` | `auth/login/page.js` | `auth/login.php` | Login (valida contra o usuário demo). |
-| `/auth/registro` | `auth/registro/page.js` | `auth/registro.php` | Criação de conta com validações. |
-
-### Rotas de API (src/app/api)
-
-| Rota | Equivalente PHP | Função |
+| Variável | Onde é usada | Obrigatória? |
 |---|---|---|
-| `api/chat` | `api/chat.php` | Recebe a mensagem do chatbot e devolve a resposta da BibliIA (usa `iaEngine.js`). **Funcional hoje** com dados demo. |
-| `api/recomendacao` | `api/recomendacao.php` | Recebe o texto e devolve livros recomendados com `score` e `razoes`. **Funcional hoje** com dados demo. |
-| `api/carrinho` | `api/carrinho.php` | Esqueleto documentado: ações add/update/remove/limpar. Sem banco, o carrinho vive no navegador; com Supabase ativo, implementar aqui os inserts/updates na tabela `carrinho`. |
-| `api/favorito` | `api/favorito.php` | Esqueleto documentado: alternar favorito na tabela `favoritos`. |
+| `NEXT_PUBLIC_SUPABASE_URL` | URL do projeto Supabase | Sim |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Chave pública (anon) do Supabase | Sim |
+| `NEXT_PUBLIC_APP_URL` | URL base do site | Não (padrão `http://localhost:3000`) |
+| `NEXT_PUBLIC_LOJA_CATALOGO_ID` | Id do vendedor dono do catálogo inicial (Authentication → Users). Separa a seção "Direto dos vendedores" | Não (sem ela, a seção mostra todas as lojas) |
+| `IA_API_URL` | Provedor de IA no formato OpenAI. **Só servidor** | Não (padrão Groq: `https://api.groq.com/openai/v1`) |
+| `IA_API_KEY` | Chave do provedor de IA. **Só servidor, nunca `NEXT_PUBLIC_`** | Não (sem ela, a recomendação usa só o modo local) |
+| `IA_MODELO` | Modelo do provedor | Não (padrão `openai/gpt-oss-20b`) |
+| `IA_DEBUG` | `1` mostra no log do servidor os termos e candidatos de cada recomendação | Não |
 
-### Componentes (src/components)
+Exemplo:
 
-| Componente | Função |
-|---|---|
-| `Header.js` | Cabeçalho fixo: logo, barra de busca, navegação, seletor de tema, login/usuário e badge do carrinho. Client (lê localStorage). |
-| `Footer.js` | Rodapé com 4 colunas (sobre, navegação, conta, pagamento). |
-| `LivroCard.js` | Card de livro usado em todas as grades: capa, título, autor, estrelas, preço, selo IA/DESTAQUE, botões comprar/favoritar. |
-| `Chatbot.js` | Assistente flutuante "BibliIA" no canto da tela: conversa, sugere chips e mostra cards de livros recomendados. |
-| `Icone.js` | Renderiza os PNGs de `/public/emoji/` (substitui a função `icone()` do PHP). |
-| `CapaLivro.js` | Gera a capa do livro como SVG inline (substitui o `capa.php` do PHP) — 100% offline, sem imagens externas. |
-| `ThemeToggle.js` | Alterna entre os temas Sépia (padrão) e Escuro e salva no localStorage. |
-| `ThemeScript.js` | Script injetado no `<head>` que aplica o tema salvo antes da hidratação (evita "flash" de tema errado). |
-| `Toasts.js` | Mensagens flutuantes de sucesso/aviso/erro via `window.showToast(msg, tipo)`. |
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
+NEXT_PUBLIC_LOJA_CATALOGO_ID=00000000-0000-0000-0000-000000000000
+IA_API_URL=https://api.groq.com/openai/v1
+IA_API_KEY=gsk_...
+IA_MODELO=openai/gpt-oss-20b
+```
 
-### Lógica (src/lib)
-
-| Arquivo | Função |
-|---|---|
-| `config.js` | Constantes: nome do app, chaves do localStorage, formas de pagamento, regra de frete grátis. |
-| `supabase.js` | ✅ Ver seção "Banco de dados" acima — **arquivo da conexão PostgreSQL/Supabase**. |
-| `mockData.js` | Cópia fiel do seed do banco em JS: 20 livros, 8 categorias, 30 tags, vínculos livro-tag, avaliações, usuário demo e pedido demo. É o que mantém o site funcionando sem banco. |
-| `repositories/livroRepository.js` | ✅ Ver seção "Banco de dados" acima — **funções de puxar livros do banco** (com SQL documentado, sem executar). |
-| `iaEngine.js` | Motor de recomendação por texto (tokens, stopwords em PT, pesos por título/autor/descrição/categoria/tag, bônus de favoritos). Porte do `ia_engine.php`. |
-| `format.js` | `preco()` (R$), `estrelas()` (★), `formatarData()`, `normalizar()` (remove acentos), `moedaParaNumero()`. |
-| `capa.js` | Gera o SVG da capa do livro (gradiente pela cor + id). Usado por `CapaLivro.js`. |
-| `clientStore.js` | Camada de estado do navegador: usuário, carrinho, favoritos e pedidos via localStorage. Comentado mostrando onde entrariam as chamadas ao banco. |
+O Google AI Studio (Gemini) também funciona sem mudar código: troque `IA_API_URL` para `https://generativelanguage.googleapis.com/v1beta/openai` e use a chave e um modelo gratuito de lá.
 
 ---
 
-## 🔌 Como ativar o banco (PostgreSQL/Supabase) — passo a passo
+## 🗺️ Páginas
 
-Tudo já está pronto para funcionar; falta apenas:
-
-1. **Criar o projeto** em https://supabase.com (plano free).
-2. **Criar as tabelas:** no painel do Supabase → *SQL Editor*, cole e execute `database/schema.sql`.
-3. **Preencher as variáveis:** copie `.env.local.example` para `.env.local` e cole a `URL` e a `anon key` do projeto (Supabase → Settings → API).
-4. **Ligar o banco:** em `src/lib/supabase.js`, troque `DB_ATIVO = false` por `true`.
-5. **Reinicie:** `npm run dev` (ou `npm run build && npm start`).
-
-A partir daí, as funções de `src/lib/repositories/livroRepository.js` passam a executar as consultas reais (os blocos SQL já estão escritos e comentados em cada função), e as rotas `api/carrinho` e `api/favorito` podem ser implementadas para persistir no banco (as instruções também estão nos comentários).
-
----
-
-## 🧠 Como funciona a "IA" de recomendação
-
-O motor (`src/lib/iaEngine.js`) simula uma IA de curadoria:
-
-1. O texto do usuário é **normalizado** (minúsculas, sem acentos) e quebrado em **tokens**, removendo *stopwords* em português ("gosto", "quero", "livro"...).
-2. Cada livro do acervo recebe uma **pontuação**: match no título (+6), categoria (+3,5), autor (+3), descrição (+2) e tags temáticas (+3 × peso), mais bônus de avaliação/vendas e de favoritos do usuário.
-3. Os livros são ordenados pelo score e cada um vem com as **razões** ("título combina com «magia»") exibidas no card.
-4. Para trocar por uma IA real (OpenAI etc.), basta reimplementar `recomendarLivrosIA()` e `responderChatIA()`.
-
----
-
-## 🔄 Equivalência com o projeto PHP original
-
-| Projeto PHP (`/var/www/html/livraria`) | Projeto Next.js (`Casa_do_Leitor`) |
+| Rota | O que faz |
 |---|---|
-| `index.php`, `busca.php`, `produto.php`, etc. | `src/app/*/page.js` |
-| `includes/header.php` + `footer.php` | `src/components/Header.js` + `Footer.js` |
-| `includes/functions.php` | `src/lib/format.js` + `config.js` |
-| `includes/ia_engine.php` | `src/lib/iaEngine.js` |
-| `config/database.php` (MySQL) | `src/lib/supabase.js` (PostgreSQL/Supabase) |
-| `database/livraria.sql` (MariaDB) | `database/schema.sql` (PostgreSQL) |
-| `api/carrinho.php`, `api/favorito.php`, `api/chat.php`, `api/recomendacao.php` | `src/app/api/*/route.js` |
-| `assets/js/main.js` + `chatbot.js` | Componentes client (`Header`, `Chatbot`, `LivroCard`...) |
-| `assets/img/capa.php` | `src/lib/capa.js` + `CapaLivro.js` |
-| `assets/img/emoji/*.png` | `public/emoji/*.png` |
-| `includes/livro_card.php` | `src/components/LivroCard.js` |
-| Sessão PHP + tabelas (carrinho/favoritos/pedidos) | `src/lib/clientStore.js` (localStorage, provisório) |
+| `/` | Destaques, faixas das maiores categorias, "Direto dos vendedores" |
+| `/busca` | Catálogo: busca de texto, filtro por categoria, ordenação e páginas de 24 livros |
+| `/livro/[id]` | Detalhe do livro: galeria de fotos, quantidade, "Adicionar ao carrinho", "Comprar agora", favoritar |
+| `/ia` | Recomendação: o leitor descreve o que quer ler (também disponível no chatbot flutuante) |
+| `/carrinho` | Carrinho com preços e estoque atuais do banco |
+| `/checkout` | Resumo + "Confirmar pedido" (exige login) |
+| `/meus-pedidos`, `/meus-pedidos/[id]` | Histórico e detalhe/confirmação do pedido |
+| `/favoritos`, `/minha-conta` | Área do cliente |
+| `/vendedor/cadastro` | "Tornar-se vendedor": o cliente logado abre a loja |
+| `/painel-vendedor` | Loja e livros do vendedor (cadastrar, editar, ativar/desativar, excluir) |
+| `/auth/login`, `/auth/registro`, `/esqueci-senha` | Conta |
+
+---
+
+## 🧠 Recomendação com IA (gratuita)
+
+O projeto não tem orçamento para APIs pagas, então a rota `POST /api/recomendar` tem **dois modos**:
+
+1. **Modo IA** — provedor gratuito compatível com a API da OpenAI, chamado com `fetch` só no servidor (`src/lib/ia.js`):
+   - **Chamada 1:** a IA transforma o pedido em termos de busca (em português **e** inglês, porque o catálogo inicial está em inglês) e escolhe categorias da lista real do banco.
+   - O banco devolve até 20 candidatos (`buscar_livros_para_ia`).
+   - **Chamada 2:** a IA escolhe até 5 candidatos e escreve o motivo de cada um. Ids fora da lista são descartados: a IA **nunca inventa livros**.
+2. **Modo local** — sem IA externa (`src/lib/dicionario-categorias.js`): palavras do pedido + um dicionário de categorias, e os livros mais relevantes da busca com um motivo montado por modelo de texto.
+
+O modo local entra **sozinho** quando não há chave, a cota grátis acaba (HTTP 429), o provedor demora mais de 12 s, dá erro ou responde num formato inválido. Preço, título, foto e estoque mostrados vêm **sempre do banco**.
+
+Proteções: limite de 10 pedidos a cada 10 minutos por IP e cache de 10 minutos para pedidos repetidos (os dois em memória). O plano gratuito do Groq tem limite por minuto: em demonstrações, espace os pedidos novos (pedidos repetidos saem do cache).
+
+---
+
+## 🗂️ Estrutura
+
+```
+BDcontexto.md                  Referência do banco real (leia primeiro)
+AGENTS.md                      Regras do projeto para quem for programar
+src/
+├── proxy.js                   Renova a sessão do Supabase e protege rotas que exigem login
+├── app/                       Páginas (App Router) e a rota api/recomendar
+├── components/                Header, Footer, LivroCard, CapaLivro, Chatbot, CardRecomendacao...
+└── lib/
+    ├── supabase/client.js     Cliente Supabase do navegador (@supabase/ssr)
+    ├── supabase/server.js     Cliente Supabase do servidor
+    ├── repositories/livroRepository.js   Consultas do catálogo
+    ├── clientStore.js         Carrinho no localStorage (só livro_id e quantidade)
+    ├── useCarrinho.js         Carrinho + dados atuais do banco
+    ├── favoritos.js           Coração dos cards (tabela favoritos)
+    ├── pedidos.js             finalizar_pedido() e histórico
+    ├── ia.js                  Provedor de IA (fetch, formato OpenAI)
+    ├── motorRecomendacao.js   Etapas da recomendação (modo IA e modo local)
+    ├── dicionario-categorias.js  Dicionário do modo local
+    ├── vendedor.js            Fotos (Storage), preço e erros da área do vendedor
+    └── capa.js                Capa genérica em SVG (fallback de imagem)
+public/emoji/                  Ícones em PNG
+database/                      Scripts antigos (não refletem o banco atual; veja BDcontexto.md)
+```
+
+---
+
+## 🔒 Regras importantes
+
+- **Toda a segurança está na RLS do Supabase.** Proteger rotas no front é só experiência de uso.
+- O front **nunca** insere em `profiles`, `pedidos` ou `itens_pedido`. Virar vendedor é `rpc('tornar_vendedor')`; comprar é `rpc('finalizar_pedido')`, que calcula preço e total e baixa o estoque.
+- Nunca usar `select('*')` em `livros` (traz a coluna `busca`): listar as colunas.
+- Toda capa usa `CapaLivro`: foto 1 → foto 2 → capa genérica. Nunca aparece imagem quebrada.
+- A chave da IA fica só no servidor.
+
+---
+
+## ⚠️ Limitações conhecidas
+
+- **Pagamento e entrega ainda não existem:** todo pedido nasce e fica com status "Pendente".
+- Não há cancelamento de pedido nem painel de vendas para o vendedor.
+- O catálogo inicial está em inglês (título e sinopse); preço e estoque são de demonstração.
+- As capas do catálogo inicial vêm do Goodreads e da Open Library e podem falhar (por isso o fallback).
+- O limite por IP e o cache da IA ficam em memória: reiniciam a cada deploy e não são compartilhados entre instâncias da Vercel.
 
 ---
 
 ## 🧰 Tecnologias
 
-- **Next.js 16** (App Router, Server/Client Components)
-- **React 19**
-- **JavaScript puro** (sem TypeScript)
-- **@supabase/supabase-js** (pacote instalado; conexão desativada)
-- CSS puro com 4 temas via variáveis (`data-theme`)
+Next.js 16 · React 19 · JavaScript (sem TypeScript) · Supabase (`@supabase/ssr`) · CSS puro com temas Sépia e Escuro · provedor de IA gratuito (Groq ou Gemini) via `fetch`.
 
----
-
-## ⚠️ Observações / detalhes adicionais
-
-- **Sem banco de dados:** nada é persistido entre navegadores ou dispositivos (apenas localStorage). Ao ativar o Supabase, os dados passam a ser compartilhados de verdade.
-- **Pagamento fictício:** o checkout não processa pagamento real (assim como no PHP).
-- **Carrinho anônimo:** no PHP, um `sessao_id` guardava o carrinho de visitantes; aqui o localStorage cumpre esse papel automaticamente.
-- **Pedido demo:** a tela "Meus pedidos" sempre mostra 1 pedido de exemplo (`CDL-2026-001`) para você ver o fluxo de rastreio antes de comprar.
-- **Capas de livros:** são geradas como SVG inline (sem depender de internet ou de imagens).
-- **Next.js 16:** `params` e `searchParams` chegam como Promise e precisam de `await` (feito em `produto/[id]` e `busca`).
+**Créditos:** dados do catálogo inicial: [goodbooks-10k-extended](https://github.com/malcolmosh/goodbooks-10k-extended) (Zygmunt Zając e Malcolm Osh), licença CC BY-SA 4.0.

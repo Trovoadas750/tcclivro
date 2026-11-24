@@ -1,23 +1,18 @@
 /**
- * Página "Meus pedidos".
- * Componente CLIENT: lista os pedidos do usuário (tabela `pedidos` com
- * `itens_pedido` e `livros`), lidos do cache do localStorage quando
- * possível (ver src/lib/usePerfil.js).
+ * Página "Meus pedidos" (histórico do cliente).
+ * Componente CLIENT: lê `pedidos` + `itens_pedido` do próprio usuário (RLS),
+ * com cache no localStorage (src/lib/usePerfil.js).
+ * Mostra data, status, total e itens com titulo_livro, foto_url, quantidade
+ * e preco_unitario — os dados do momento da compra.
  */
 'use client';
 
 import Link from 'next/link';
 import Icone from '@/components/Icone';
+import CapaLivro from '@/components/CapaLivro';
 import { preco, formatarData } from '@/lib/format';
+import { ROTULOS_STATUS, numeroPedido } from '@/lib/pedidos';
 import { usePerfil } from '@/lib/usePerfil';
-
-const ROTULOS_STATUS_PEDIDO = {
-  pendente: 'Pendente',
-  pago: 'Pago',
-  enviado: 'Enviado',
-  entregue: 'Entregue',
-  cancelado: 'Cancelado',
-};
 
 export default function MeusPedidos() {
   const { carregando, usuario, pedidos, erro } = usePerfil();
@@ -43,38 +38,38 @@ export default function MeusPedidos() {
 
       {erro && <div className="toast toast-error" style={{ marginBottom: 16 }}>{erro}</div>}
 
-      <div className="painel" style={{ overflowX: 'auto' }}>
-        <table className="tabela">
-          <thead>
-            <tr>
-              <th>Pedido</th>
-              <th>Data</th>
-              <th>Itens</th>
-              <th>Total</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pedidos.map((p) => {
-              const resumo = (p.itens_pedido || [])
-                .map((i) => `${i.quantidade}x ${i.livros?.titulo || 'Livro'} (${preco(i.preco_unitario)})`)
-                .join(', ');
-              return (
-                <tr key={p.id}>
-                  <td><b>#{p.id.slice(0, 8).toUpperCase()}</b></td>
-                  <td style={{ whiteSpace: 'nowrap' }}>{formatarData(p.created_at)}</td>
-                  <td style={{ maxWidth: 320 }}>{resumo}</td>
-                  <td><b>{preco(p.total)}</b></td>
-                  <td>
-                    <span className={`status-pill status-${p.status}`}>
-                      {ROTULOS_STATUS_PEDIDO[p.status] || p.status}
+      <div className="lista-pedidos">
+        {pedidos.map((p) => {
+          const itens = p.itens_pedido || [];
+          return (
+            <article key={p.id} className="painel pedido-card">
+              <div className="pedido-cabecalho">
+                <div>
+                  <h3>Pedido {numeroPedido(p.id)}</h3>
+                  <small>{formatarData(p.created_at)}</small>
+                </div>
+                <span className={`status-pill status-${p.status}`}>{ROTULOS_STATUS[p.status] || p.status}</span>
+              </div>
+
+              <ul className="pedido-itens">
+                {itens.map((i) => (
+                  <li key={i.id}>
+                    <span className="pedido-item-capa">
+                      <CapaLivro livro={{ id: i.livro_id, titulo: i.titulo_livro || 'Livro', autor: '' }} fotos={[i.foto_url]} />
                     </span>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                    <span className="pedido-item-titulo">{i.titulo_livro || 'Livro'}</span>
+                    <span className="pedido-item-qtd">{i.quantidade} × {preco(i.preco_unitario)}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="pedido-rodape">
+                <span>Total: <b>{preco(p.total)}</b></span>
+                <Link className="btn btn-ghost btn-sm" href={`/meus-pedidos/${p.id}`}>Ver detalhes</Link>
+              </div>
+            </article>
+          );
+        })}
       </div>
     </>
   );
