@@ -23,6 +23,8 @@ npm start     # servir a build de produção
 - Conta: cadastro único (toda conta nasce cliente); virar vendedor é `rpc('tornar_vendedor', ...)` em `/vendedor/cadastro`.
 - Variáveis de ambiente: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_LOJA_CATALOGO_ID` e, só no servidor, `IA_API_URL`, `IA_API_KEY`, `IA_MODELO` (opcional: `IA_DEBUG=1` mostra termos e candidatos da recomendação no log).
 - IA de recomendação (`POST /api/recomendar`, página `/ia` e chatbot): provedor **gratuito** no formato OpenAI via `fetch` (`src/lib/ia.js`), sem SDK e sem APIs pagas, com **modo local** automático (`src/lib/dicionario-categorias.js`) quando não há chave, a cota acaba ou o provedor falha. Etapas em `src/lib/motorRecomendacao.js`.
+- Estilos em CSS global (sem Tailwind/CSS Modules): **tokens** (cores dos temas Sépia e Escuro, espaçamentos, raios, sombras, fontes) só em `src/app/tokens.css`; cabeçalho, menu do celular, barra inferior e rodapé em `src/app/estrutura.css`; o resto em `globals.css`. Use as variáveis `--cor-*`, `--esp-*`, `--raio-*` em vez de cores fixas. Fontes via `next/font` (Fraunces nos títulos, Inter no texto). Breakpoints: 360, 768, 1024 e 1280 px.
+- Logo: `public/logo.png` (componente `LogoMarca`). Ícones de interface: SVG próprios em `src/components/IconeSvg.js`.
 - Componentes interativos usam `'use client'`; páginas de catálogo são Server Components.
 - Interface toda em português.
 - Não há linter/ESLint configurado.

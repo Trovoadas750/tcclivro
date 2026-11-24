@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
 import Icone from '@/components/Icone';
+import LogoMarca from '@/components/LogoMarca';
 import CampoSenha from '@/components/CampoSenha';
 import { entrar } from '@/app/auth/actions';
 import { comProximo, destinoSeguro } from '@/lib/redirecionamento';
@@ -52,7 +53,7 @@ function ConteudoLogin() {
   return (
     <div className="auth-wrap">
       <div className="painel auth-card">
-        <span style={{ display: 'inline-block' }}><Icone nome="livros" alt="Livraria" tam={44} /></span>
+        <div className="auth-logo"><LogoMarca tam={96} /></div>
         <h1>Bem-vindo de volta</h1>
         <p className="sub">Acesse sua conta para salvar favoritos e acompanhar pedidos.</p>
 

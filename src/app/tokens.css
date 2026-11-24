@@ -1,0 +1,231 @@
+/* ============================================================
+   CASA DO LEITOR — TOKENS DE DESIGN (único lugar das variáveis)
+   ============================================================
+   Paleta tirada da logo (public/logo.png):
+     terracota #E19070 · verde-oliva #837C51 · marrom #3C2013 · creme #FAF2E8
+   Dois temas, escolhidos pelo seletor de tema (data-theme no <html>):
+     data-theme="sepia"  → padrão, claro (papel)
+     data-theme="escuro" → escuro
+   Todas as combinações de texto foram conferidas para contraste WCAG AA.
+   As variáveis com nomes antigos (--primary, --ink, --card...) no fim de
+   cada tema são apelidos, para as páginas ainda não refeitas.
+   ============================================================ */
+
+:root {
+  /* Espaçamentos (escala de 4 px) */
+  --esp-1: 4px;
+  --esp-2: 8px;
+  --esp-3: 12px;
+  --esp-4: 16px;
+  --esp-5: 24px;
+  --esp-6: 32px;
+  --esp-7: 48px;
+  --esp-8: 64px;
+
+  /* Raios */
+  --raio-p: 8px;
+  --raio-m: 12px;
+  --raio-g: 18px;
+  --raio-pilula: 999px;
+
+  /* Tipografia (as fontes vêm de next/font no layout raiz) */
+  --fonte-texto: var(--fonte-inter), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --fonte-titulo: var(--fonte-fraunces), Georgia, "Times New Roman", serif;
+  --fs-xs: 12px;
+  --fs-p: 13.5px;
+  --fs-m: 15px;
+  --fs-g: 18px;
+  --fs-xg: 22px;
+  --fs-2xg: 28px;
+  --fs-titulo: clamp(26px, 3.6vw, 38px);
+
+  /* Layout */
+  --largura-max: 1200px;
+  --altura-cabecalho: 124px;      /* desktop: duas linhas */
+  --altura-nav-inferior: 64px;    /* barra inferior do celular */
+  --area-toque: 44px;
+
+  /* Transições */
+  --transicao: .16s ease;
+
+  /* A logo tem fundo transparente e contorno escuro: sempre sobre creme */
+  --cor-fundo-logo: #FAF2E8;
+
+  /* Apelido antigo */
+  --radius: var(--raio-g);
+}
+
+/* ---------- Tema Sépia (claro, papel) — padrão ---------- */
+:root,
+[data-theme="sepia"] {
+  color-scheme: light;
+
+  --cor-primaria: #3E4A2C;          /* verde-oliva escuro: botões principais, links */
+  --cor-primaria-hover: #313B22;
+  --cor-primaria-suave: #E7E9D6;
+  --cor-sobre-primaria: #FFFFFF;
+
+  --cor-cabecalho: #3E4A2C;
+  --cor-cabecalho-2: #34402A;       /* 2ª linha do cabeçalho */
+  --cor-sobre-cabecalho: #FAF2E8;
+  --cor-cabecalho-sec: #D9D6C2;
+  --cor-cabecalho-borda: rgba(250, 242, 232, .14);
+
+  --cor-destaque: #E19070;          /* terracota da logo: áreas grandes e ilustrações */
+  --cor-destaque-forte: #A64F30;    /* selos e textos em terracota */
+  --cor-sobre-destaque-forte: #FFFFFF;
+  --cor-sobre-destaque: #2A1F17;    /* texto escuro sobre a terracota clara */
+  --cor-destaque-suave: #F7E1D6;
+  --cor-oliva: #837C51;             /* oliva da logo: só decorativo */
+
+  --cor-fundo: #F7F1E8;
+  --cor-superficie: #FFFFFF;
+  --cor-superficie-2: #FBF7F1;
+  --cor-campo: #FFFFFF;
+  --cor-texto: #2A1F17;
+  --cor-texto-sec: #645A50;
+  --cor-borda: #E6DCCD;
+  --cor-foco: #A64F30;
+
+  --cor-sucesso: #2E7D4F;
+  --cor-sucesso-suave: #DDEFE3;
+  --cor-alerta: #B7791F;
+  --cor-alerta-texto: #8A5A12;
+  --cor-alerta-suave: #F8EBD3;
+  --cor-erro: #B3261E;
+  --cor-erro-suave: #F6DCD9;
+  --cor-sobre-sucesso: #FFFFFF;
+  --cor-sobre-erro: #FFFFFF;
+
+  --cor-rodape-fundo: #2F3822;
+  --cor-rodape-texto: #EFE8DA;
+  --cor-rodape-sec: #C9C3B2;
+  --cor-rodape-borda: rgba(239, 232, 218, .16);
+
+  --sombra-1: 0 1px 2px rgba(60, 32, 19, .06), 0 4px 14px rgba(60, 32, 19, .07);
+  --sombra-2: 0 10px 34px rgba(60, 32, 19, .16);
+
+  /* --- apelidos dos nomes antigos --- */
+  --primary: var(--cor-primaria);
+  --primary-dark: var(--cor-primaria);
+  --primary-deep: var(--cor-cabecalho);
+  --primary-soft: var(--cor-primaria-suave);
+  --accent: var(--cor-destaque-forte);
+  --accent-deep: var(--cor-destaque-forte);
+  --danger: var(--cor-erro);
+  --success: var(--cor-sucesso);
+  --btn-text: var(--cor-sobre-primaria);
+  --danger-soft: var(--cor-erro-suave);
+  --success-soft: var(--cor-sucesso-suave);
+  --warning-soft: var(--cor-alerta-suave);
+  --ink: var(--cor-texto);
+  --muted: var(--cor-texto-sec);
+  --bg: var(--cor-fundo);
+  --card: var(--cor-superficie);
+  --line: var(--cor-borda);
+  --input-bg: var(--cor-campo);
+  --hover-bg: var(--cor-superficie-2);
+  --topo-grad: var(--cor-cabecalho);
+  --topo-link: var(--cor-cabecalho-sec);
+  --hero-grad: linear-gradient(135deg, #2F3822, #3E4A2C 60%, #55613D);
+  --hero-radial: radial-gradient(900px 420px at 85% -10%, rgba(225, 144, 112, .28), transparent);
+  --faixa-bg: linear-gradient(120deg, #2F3822, #3E4A2C 55%, #55613D);
+  --rodape-bg: var(--cor-rodape-fundo);
+  --rodape-text: var(--cor-rodape-texto);
+  --rodape-muted: var(--cor-rodape-sec);
+  --rodape-link: var(--cor-rodape-texto);
+  --rodape-line: var(--cor-rodape-borda);
+  --chat-bg: var(--cor-fundo);
+  --tabela-th: var(--cor-superficie-2);
+  --chip-bg: var(--cor-superficie);
+  --chip-hover-bg: var(--cor-primaria-suave);
+  --shadow: var(--sombra-1);
+  --shadow-lg: var(--sombra-2);
+}
+
+/* ---------- Tema Escuro ---------- */
+[data-theme="escuro"] {
+  color-scheme: dark;
+
+  --cor-primaria: #B9C48E;          /* sálvia clara: botões com texto escuro */
+  --cor-primaria-hover: #C9D3A3;
+  --cor-primaria-suave: #2C3322;
+  --cor-sobre-primaria: #1B2010;
+
+  --cor-cabecalho: #2B3220;
+  --cor-cabecalho-2: #252B1C;
+  --cor-sobre-cabecalho: #EFE6DA;
+  --cor-cabecalho-sec: #C9C3B2;
+  --cor-cabecalho-borda: rgba(239, 230, 218, .12);
+
+  --cor-destaque: #E8956F;
+  --cor-destaque-forte: #E8956F;
+  --cor-sobre-destaque-forte: #2A1208;
+  --cor-sobre-destaque: #2A1208;
+  --cor-destaque-suave: #3A2519;
+  --cor-oliva: #A49C6E;
+
+  --cor-fundo: #16130F;
+  --cor-superficie: #211C17;
+  --cor-superficie-2: #2A241E;
+  --cor-campo: #1B1713;
+  --cor-texto: #EFE6DA;
+  --cor-texto-sec: #B3A797;
+  --cor-borda: #3A322A;
+  --cor-foco: #E8956F;
+
+  --cor-sucesso: #6FCF97;
+  --cor-sucesso-suave: #1D3326;
+  --cor-alerta: #E0B25A;
+  --cor-alerta-texto: #E0B25A;
+  --cor-alerta-suave: #3A2F17;
+  --cor-erro: #F2867D;
+  --cor-erro-suave: #3D1F1C;
+  --cor-sobre-sucesso: #10261A;
+  --cor-sobre-erro: #2B0D0A;
+
+  --cor-rodape-fundo: #12100C;
+  --cor-rodape-texto: #E4DACB;
+  --cor-rodape-sec: #A99D8C;
+  --cor-rodape-borda: rgba(228, 218, 203, .12);
+
+  --sombra-1: 0 1px 2px rgba(0, 0, 0, .3), 0 4px 14px rgba(0, 0, 0, .35);
+  --sombra-2: 0 12px 36px rgba(0, 0, 0, .5);
+
+  /* --- apelidos dos nomes antigos --- */
+  --primary: var(--cor-primaria);
+  --primary-dark: var(--cor-primaria);
+  --primary-deep: var(--cor-cabecalho);
+  --primary-soft: var(--cor-primaria-suave);
+  --accent: var(--cor-destaque-forte);
+  --accent-deep: var(--cor-destaque-forte);
+  --danger: var(--cor-erro);
+  --success: var(--cor-sucesso);
+  --btn-text: var(--cor-sobre-primaria);
+  --danger-soft: var(--cor-erro-suave);
+  --success-soft: var(--cor-sucesso-suave);
+  --warning-soft: var(--cor-alerta-suave);
+  --ink: var(--cor-texto);
+  --muted: var(--cor-texto-sec);
+  --bg: var(--cor-fundo);
+  --card: var(--cor-superficie);
+  --line: var(--cor-borda);
+  --input-bg: var(--cor-campo);
+  --hover-bg: var(--cor-superficie-2);
+  --topo-grad: var(--cor-cabecalho);
+  --topo-link: var(--cor-cabecalho-sec);
+  --hero-grad: linear-gradient(135deg, #1C2116, #2B3220 60%, #3A4429);
+  --hero-radial: radial-gradient(900px 420px at 85% -10%, rgba(232, 149, 111, .18), transparent);
+  --faixa-bg: linear-gradient(120deg, #1C2116, #2B3220 55%, #3A4429);
+  --rodape-bg: var(--cor-rodape-fundo);
+  --rodape-text: var(--cor-rodape-texto);
+  --rodape-muted: var(--cor-rodape-sec);
+  --rodape-link: var(--cor-rodape-texto);
+  --rodape-line: var(--cor-rodape-borda);
+  --chat-bg: var(--cor-fundo);
+  --tabela-th: var(--cor-superficie-2);
+  --chip-bg: var(--cor-superficie);
+  --chip-hover-bg: var(--cor-primaria-suave);
+  --shadow: var(--sombra-1);
+  --shadow-lg: var(--sombra-2);
+}
