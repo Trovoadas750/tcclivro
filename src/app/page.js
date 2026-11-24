@@ -23,6 +23,7 @@ import {
 export const metadata = { title: 'Início' };
 
 const QTD_FAIXAS = 5;
+const QTD_CATEGORIAS_ATALHO = 10;
 
 export default async function Home() {
   const supabase = await createClient();
@@ -54,15 +55,23 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* Atalho para as maiores categorias: uma linha só, com rolagem lateral.
+          A lista completa fica no menu "Categorias" do cabeçalho e no catálogo. */}
       {categorias.length > 0 && (
-        <section className="secao">
-          <div className="chips">
-            {categorias.map((c) => (
-              <Link key={c.categoria} className="chip" href={`/busca?categoria=${encodeURIComponent(c.categoria)}`}>
-                {c.categoria} <small style={{ opacity: 0.7 }}>({c.livros})</small>
-              </Link>
+        <section className="secao faixa-categorias" aria-labelledby="titulo-categorias">
+          <h2 id="titulo-categorias" className="faixa-categorias-titulo">Explore por categoria</h2>
+          <ul className="faixa-categorias-lista">
+            {categorias.slice(0, QTD_CATEGORIAS_ATALHO).map((c) => (
+              <li key={c.categoria}>
+                <Link className="categoria-atalho" href={`/busca?categoria=${encodeURIComponent(c.categoria)}`}>
+                  {c.categoria} <span className="categoria-atalho-qtd">{c.livros}</span>
+                </Link>
+              </li>
             ))}
-          </div>
+            <li>
+              <Link className="categoria-atalho categoria-atalho-todas" href="/busca">Todas as categorias ›</Link>
+            </li>
+          </ul>
         </section>
       )}
 
