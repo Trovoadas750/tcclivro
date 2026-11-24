@@ -143,7 +143,7 @@ Casa_do_Leitor/
 | `Chatbot.js` | Assistente flutuante "BibliIA" no canto da tela: conversa, sugere chips e mostra cards de livros recomendados. |
 | `Icone.js` | Renderiza os PNGs de `/public/emoji/` (substitui a função `icone()` do PHP). |
 | `CapaLivro.js` | Gera a capa do livro como SVG inline (substitui o `capa.php` do PHP) — 100% offline, sem imagens externas. |
-| `ThemeToggle.js` | Alterna entre os temas Livro/Claro/Escuro/Sépia e salva no localStorage. |
+| `ThemeToggle.js` | Alterna entre os temas Sépia (padrão) e Escuro e salva no localStorage. |
 | `ThemeScript.js` | Script injetado no `<head>` que aplica o tema salvo antes da hidratação (evita "flash" de tema errado). |
 | `Toasts.js` | Mensagens flutuantes de sucesso/aviso/erro via `window.showToast(msg, tipo)`. |
 

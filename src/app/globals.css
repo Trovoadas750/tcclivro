@@ -2,90 +2,50 @@
    CASA DO LEITOR - Estilos globais
    Adaptação de assets/css/style.css do projeto PHP original.
    Temas: cada tema define sua paleta via CSS variables.
-   data-theme="livro"  -> padrao (papel creme + roxo pastel)
-   data-theme="claro"  -> branco brilhante
+   data-theme="sepia"  -> padrao (sepia classico de leitura)
    data-theme="escuro" -> modo escuro
-   data-theme="sepia"  -> sepia classico de leitura
    ============================================================ */
 :root {
   --radius: 14px;
 }
 
 :root,
-[data-theme="livro"] {
-  --primary: #8b6fc9;
-  --primary-dark: #6a4fa8;
-  --primary-deep: #4c3d7d;
-  --primary-soft: #ece4f7;
-  --accent: #d97706;
-  --accent-deep: #b45309;
-  --danger: #b93a34;
-  --success: #3f8f5b;
+[data-theme="sepia"] {
+  --primary: #7c6aa8;
+  --primary-dark: #635286;
+  --primary-deep: #4a3f6b;
+  --primary-soft: #efe5dc;
+  --accent: #b45309;
+  --accent-deep: #92400e;
+  --danger: #a03d34;
+  --success: #4d7c55;
   --btn-text: #ffffff;
-  --danger-soft: #f2d3d1;
-  --success-soft: #d8e7d3;
-  --warning-soft: #f6e6c1;
-  --ink: #3d3731;
-  --muted: #7a7263;
-  --bg: #f2ead6;
-  --card: #fdfaf1;
-  --line: #e0d5bb;
-  --input-bg: #fffdf6;
-  --hover-bg: #efe7d3;
-  --topo-grad: linear-gradient(90deg, #4c3d7d, #6a4fa8 55%, #8b6fc9);
-  --topo-link: #dcd3f0;
-  --hero-grad: linear-gradient(135deg, #4c3d7d, #6a4fa8 60%, #9d84d6);
-  --hero-radial: radial-gradient(1200px 500px at 80% -20%, rgba(157,132,214,.4), transparent);
-  --faixa-bg: linear-gradient(120deg, #3d3170, #6a4fa8, #8b6fc9);
-  --rodape-bg: #2c253f;
-  --rodape-text: #cdc6de;
-  --rodape-muted: #9d94b8;
-  --rodape-link: #b7aed2;
-  --rodape-line: #3e3554;
-  --chat-bg: #f7f1e1;
-  --tabela-th: #ece3cf;
-  --chip-bg: #fdfaf1;
-  --chip-hover-bg: #ece4f7;
-  --shadow: 0 4px 18px rgba(76,61,125,.10);
-  --shadow-lg: 0 14px 40px rgba(76,61,125,.18);
-}
-
-[data-theme="claro"] {
-  --primary: #6d5bd0;
-  --primary-dark: #5244b3;
-  --primary-deep: #312e81;
-  --primary-soft: #eef2ff;
-  --accent: #f59e0b;
-  --accent-deep: #d97706;
-  --danger: #dc2626;
-  --success: #16a34a;
-  --btn-text: #ffffff;
-  --danger-soft: #fee2e2;
-  --success-soft: #dcfce7;
-  --warning-soft: #fef3c7;
-  --ink: #1e293b;
-  --muted: #64748b;
-  --bg: #f8fafc;
-  --card: #ffffff;
-  --line: #e2e8f0;
-  --input-bg: #ffffff;
-  --hover-bg: #f1f5f9;
-  --topo-grad: linear-gradient(90deg, #312e81, #4f46e5 55%, #6d28d9);
-  --topo-link: #e0e7ff;
-  --hero-grad: linear-gradient(135deg, #312e81, #4f46e5 60%, #7c3aed);
-  --hero-radial: radial-gradient(1200px 500px at 80% -20%, rgba(109,40,217,.35), transparent);
-  --faixa-bg: linear-gradient(120deg, #1e1b4b, #4f46e5, #7c3aed);
-  --rodape-bg: #0f172a;
-  --rodape-text: #cbd5e1;
-  --rodape-muted: #94a3b8;
-  --rodape-link: #94a3b8;
-  --rodape-line: #1e293b;
-  --chat-bg: #f8fafc;
-  --tabela-th: #f1f5f9;
-  --chip-bg: #ffffff;
-  --chip-hover-bg: #eef2ff;
-  --shadow: 0 4px 18px rgba(15,23,42,.08);
-  --shadow-lg: 0 14px 40px rgba(15,23,42,.14);
+  --danger-soft: #ecd0c9;
+  --success-soft: #d9e2cd;
+  --warning-soft: #f0dfb8;
+  --ink: #4f3d2b;
+  --muted: #8a7258;
+  --bg: #efe3c3;
+  --card: #f7edcf;
+  --line: #dccfae;
+  --input-bg: #f9f0d4;
+  --hover-bg: #e9dcb8;
+  --topo-grad: linear-gradient(90deg, #4a3f6b, #635286 55%, #7c6aa8);
+  --topo-link: #dcd3ec;
+  --hero-grad: linear-gradient(135deg, #4a3f6b, #635286 60%, #8b7bb3);
+  --hero-radial: radial-gradient(1200px 500px at 80% -20%, rgba(139,123,179,.35), transparent);
+  --faixa-bg: linear-gradient(120deg, #3a3155, #635286, #8b7bb3);
+  --rodape-bg: #2e283f;
+  --rodape-text: #d0c8df;
+  --rodape-muted: #a097ba;
+  --rodape-link: #b9b0d0;
+  --rodape-line: #403956;
+  --chat-bg: #f1e7c8;
+  --tabela-th: #e6d9b6;
+  --chip-bg: #f7edcf;
+  --chip-hover-bg: #efe5dc;
+  --shadow: 0 4px 18px rgba(90,70,40,.12);
+  --shadow-lg: 0 14px 40px rgba(90,70,40,.20);
 }
 
 [data-theme="escuro"] {
@@ -124,44 +84,6 @@
   --chip-hover-bg: #2e2744;
   --shadow: 0 4px 18px rgba(0,0,0,.45);
   --shadow-lg: 0 14px 40px rgba(0,0,0,.55);
-}
-
-[data-theme="sepia"] {
-  --primary: #7c6aa8;
-  --primary-dark: #635286;
-  --primary-deep: #4a3f6b;
-  --primary-soft: #efe5dc;
-  --accent: #b45309;
-  --accent-deep: #92400e;
-  --danger: #a03d34;
-  --success: #4d7c55;
-  --btn-text: #ffffff;
-  --danger-soft: #ecd0c9;
-  --success-soft: #d9e2cd;
-  --warning-soft: #f0dfb8;
-  --ink: #4f3d2b;
-  --muted: #8a7258;
-  --bg: #efe3c3;
-  --card: #f7edcf;
-  --line: #dccfae;
-  --input-bg: #f9f0d4;
-  --hover-bg: #e9dcb8;
-  --topo-grad: linear-gradient(90deg, #4a3f6b, #635286 55%, #7c6aa8);
-  --topo-link: #dcd3ec;
-  --hero-grad: linear-gradient(135deg, #4a3f6b, #635286 60%, #8b7bb3);
-  --hero-radial: radial-gradient(1200px 500px at 80% -20%, rgba(139,123,179,.35), transparent);
-  --faixa-bg: linear-gradient(120deg, #3a3155, #635286, #8b7bb3);
-  --rodape-bg: #2e283f;
-  --rodape-text: #d0c8df;
-  --rodape-muted: #a097ba;
-  --rodape-link: #b9b0d0;
-  --rodape-line: #403956;
-  --chat-bg: #f1e7c8;
-  --tabela-th: #e6d9b6;
-  --chip-bg: #f7edcf;
-  --chip-hover-bg: #efe5dc;
-  --shadow: 0 4px 18px rgba(90,70,40,.12);
-  --shadow-lg: 0 14px 40px rgba(90,70,40,.20);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -298,8 +220,6 @@ a:hover { text-decoration: underline; }
   width: 16px; height: 16px; border-radius: 50%; display: inline-block; flex: none;
   box-shadow: inset 0 0 0 1px rgba(0,0,0,.15);
 }
-.swatch-livro  { background: linear-gradient(135deg, #8b6fc9 50%, #f2ead6 50%); }
-.swatch-claro  { background: linear-gradient(135deg, #6d5bd0 50%, #f8fafc 50%); }
 .swatch-escuro { background: linear-gradient(135deg, #a78bfa 50%, #16131f 50%); }
 .swatch-sepia  { background: linear-gradient(135deg, #7c6aa8 50%, #efe3c3 50%); }
 

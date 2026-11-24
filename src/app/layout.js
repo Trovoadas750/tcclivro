@@ -9,7 +9,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Chatbot from '@/components/Chatbot';
 import Toasts from '@/components/Toasts';
-import { APP_NAME } from '@/lib/config';
+import { APP_NAME, TEMA_PADRAO } from '@/lib/config';
 
 export const metadata = {
   title: {
@@ -21,7 +21,10 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="pt-BR">
+    // data-theme sai do servidor com o tema padrão; o ThemeScript pode
+    // trocá-lo pelo tema salvo antes da hidratação, por isso o
+    // suppressHydrationWarning (vale só para os atributos do <html>).
+    <html lang="pt-BR" data-theme={TEMA_PADRAO} suppressHydrationWarning>
       <head>
         <ThemeScript />
       </head>

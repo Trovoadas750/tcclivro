@@ -1,5 +1,5 @@
 /**
- * Alternador de temas (Livro / Claro / Escuro / Sépia).
+ * Alternador de temas (Sépia / Escuro).
  * Equivalente ao bloco de temas do main.js do PHP original.
  * O tema é persistido no localStorage (key: casa_leitor_tema).
  * Componente 100% client-side.
@@ -7,32 +7,25 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-
-const TEMAS = { livro: 'Livro', claro: 'Claro', escuro: 'Escuro', sepia: 'Sépia' };
-const STORAGE_KEY = 'casa_leitor_tema';
+import { STORAGE_KEYS, TEMAS, TEMA_PADRAO } from '@/lib/config';
 
 export default function ThemeToggle() {
   const [aberto, setAberto] = useState(false);
-  const [tema, setTema] = useState('livro');
+  const [tema, setTema] = useState(TEMA_PADRAO);
 
   useEffect(() => {
-    // Lê o tema salvo (o layout já aplica antes da hidratação via <script>)
-    let salvo = 'livro';
-    try {
-      salvo = localStorage.getItem(STORAGE_KEY) || 'livro';
-    } catch {}
-    aplicar(salvo);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // O ThemeScript já aplicou o tema válido no <html> antes da hidratação;
+    // aqui só sincronizamos o estado do botão com ele.
+    const atual = document.documentElement.getAttribute('data-theme');
+    if (TEMAS[atual]) setTema(atual);
   }, []);
 
-  function aplicar(novoTema, salvar = true) {
+  function aplicar(novoTema) {
     document.documentElement.setAttribute('data-theme', novoTema);
     setTema(novoTema);
-    if (salvar) {
-      try {
-        localStorage.setItem(STORAGE_KEY, novoTema);
-      } catch {}
-    }
+    try {
+      localStorage.setItem(STORAGE_KEYS.TEMA, novoTema);
+    } catch {}
   }
 
   return (

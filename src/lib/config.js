@@ -24,6 +24,10 @@ export const STORAGE_KEYS = {
   RECUPERACAO_EMAIL: 'casa_leitor_recuperacao_email',
 };
 
+/** Temas disponíveis (chave = valor de data-theme no <html>). */
+export const TEMAS = { sepia: 'Sépia', escuro: 'Escuro' };
+export const TEMA_PADRAO = 'sepia';
+
 /** Categorias "oficiais" de status de pagamento no checkout. */
 export const FORMAS_PAGAMENTO = {
   cartao: 'Cartão de crédito',
